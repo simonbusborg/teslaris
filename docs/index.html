@@ -433,6 +433,25 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
 </footer>
 
 <script>
+  // A different Tesla each visit, like the Polaris site does with its
+  // Polestars. Same verified option sets the app uses — the compositor
+  // errors unless trim, paint, wheels and interior are all present.
+  const compositor = (model, options) =>
+    `https://static-assets.tesla.com/configurator/compositor?model=${model}`
+    + `&options=${options}&view=STUD_SIDE&size=800&bkba_opt=1`;
+  const models = [
+    {name: 'Tesla Model S', url: compositor('ms', '%24MTS14,%24PPSW,%24WS90,%24IBE00')},
+    {name: 'Tesla Model 3', url: compositor('m3', '%24MT356,%24PPSW,%24W38A,%24IPB3')},
+    {name: 'Tesla Model X', url: compositor('mx', '%24MTX14,%24PPSW,%24WX00,%24IBE00')},
+    {name: 'Tesla Model Y', url: compositor('my', '%24MTY13,%24PPSW,%24WY19B,%24INPB0')},
+  ];
+  const pick = models[Math.floor(Math.random() * models.length)];
+  const hero = document.querySelector('.hero-car');
+  hero.src = pick.url;
+  hero.alt = `Side view of a ${pick.name}`;
+  document.querySelector('.menu-card img.car').src = pick.url;
+  document.querySelector('.menu-card .mrow.title span').textContent = pick.name;
+
   for (const btn of document.querySelectorAll('pre .copy')) {
     btn.addEventListener('click', async () => {
       await navigator.clipboard.writeText(btn.parentElement.querySelector('code').innerText);
