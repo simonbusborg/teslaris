@@ -8,172 +8,174 @@
 <link rel="icon" type="image/png" href="icon.png">
 <style>
   :root {
-    --bg: #171a20;
-    --bg-raised: #1d2026;
-    --line: rgba(255, 255, 255, 0.08);
-    --text: #f4f4f4;
-    --text-dim: #a2a3a5;
-    --text-faint: #6b6d70;
-    --red: #e82127;
+    --text: #171a20;
+    --text-gray: #5c5e62;
+    --text-faint: #a2a3a5;
+    --card: #f4f4f4;
+    --dark: #171a20;
+    --dark-text-gray: #8e8e93;
+    --line: rgba(23, 26, 32, 0.1);
+    --line-dark: rgba(255, 255, 255, 0.15);
     --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    background: var(--bg);
+    background: #fff;
     color: var(--text);
-    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   a { color: inherit; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+  .narrow { max-width: 760px; }
 
   /* ---- nav ---- */
   nav {
     position: sticky; top: 0; z-index: 10;
-    background: rgba(23, 26, 32, 0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
   }
-  nav .wrap { display: flex; align-items: center; height: 56px; gap: 28px; }
+  nav .wrap { display: flex; align-items: center; height: 56px; }
   .wordmark {
-    font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase;
-    font-size: 14px; text-decoration: none; margin-right: auto;
-    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 600; letter-spacing: 0.42em;
+    text-transform: uppercase; text-decoration: none; margin-right: auto;
   }
-  .wordmark img { width: 22px; height: 22px; border-radius: 5px; }
-  nav a:not(.wordmark) {
-    font-size: 13px; text-decoration: none; color: var(--text-dim);
-    letter-spacing: 0.06em;
+  nav .links { display: flex; gap: 8px; }
+  nav .links a {
+    font-size: 14px; font-weight: 500; text-decoration: none;
+    padding: 6px 14px; border-radius: 4px;
   }
-  nav a:not(.wordmark):hover { color: var(--text); }
+  nav .links a:hover { background: rgba(23, 26, 32, 0.05); }
+
+  /* ---- buttons ---- */
+  .btn {
+    display: inline-block; min-width: 220px; text-align: center;
+    padding: 9px 24px; border-radius: 4px; font-size: 14px; font-weight: 500;
+    text-decoration: none; transition: opacity 0.2s, background 0.2s;
+  }
+  .btn-dark { background: var(--dark); color: #fff; }
+  .btn-dark:hover { opacity: 0.9; }
+  .btn-light { background: var(--card); color: var(--text); }
+  .btn-light:hover { background: #eaeaea; }
 
   /* ---- hero ---- */
-  header { padding: 110px 0 70px; text-align: center; }
-  header img.appicon { width: 108px; height: 108px; margin-bottom: 34px; }
-  .kicker {
-    font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase;
-    color: var(--text-dim); margin-bottom: 18px;
-  }
-  h1 { font-size: clamp(34px, 6vw, 56px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.12; }
-  header p.sub {
-    color: var(--text-dim); max-width: 560px; margin: 22px auto 0; font-size: 18px;
-  }
-  .cta { margin-top: 38px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-  .btn {
-    display: inline-block; padding: 11px 34px; border-radius: 4px;
-    font-size: 14px; letter-spacing: 0.04em; text-decoration: none;
-    transition: opacity 0.15s, background 0.15s;
-  }
-  .btn-primary { background: var(--text); color: #111; font-weight: 500; }
-  .btn-primary:hover { opacity: 0.85; }
-  .btn-ghost { border: 1px solid rgba(255,255,255,0.35); color: var(--text); }
-  .btn-ghost:hover { background: rgba(255,255,255,0.06); }
-  .disclaimer {
-    margin-top: 30px; font-size: 12px; color: var(--text-faint);
-    letter-spacing: 0.08em; text-transform: uppercase;
-  }
-  .disclaimer .dot { color: var(--red); }
+  header { text-align: center; padding: 96px 0 0; }
+  h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 600; letter-spacing: -0.015em; line-height: 1.1; }
+  header .sub { margin: 14px auto 0; font-size: 17px; color: var(--text-gray); max-width: 560px; }
+  .cta { margin-top: 28px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  header .fineprint { margin-top: 18px; font-size: 12px; color: var(--text-faint); }
+  .hero-car { display: block; width: min(720px, 92%); margin: 12px auto 0; }
+  header .caption { font-size: 12px; color: var(--text-faint); padding-bottom: 56px; }
 
   /* ---- sections ---- */
-  section { padding: 90px 0; border-top: 1px solid var(--line); }
-  .label {
-    font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase;
-    color: var(--text-dim); margin-bottom: 14px;
-  }
-  .label::before { content: "— "; color: var(--red); }
-  h2 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 40px; }
+  section { padding: 88px 0; }
+  h2 { font-size: clamp(28px, 3.6vw, 40px); font-weight: 600; letter-spacing: -0.015em; margin-bottom: 12px; }
+  .lede { color: var(--text-gray); font-size: 16px; max-width: 820px; margin-bottom: 44px; }
+  .lede strong { color: var(--text); font-weight: 600; }
 
-  /* ---- menu illustration ---- */
-  .showcase { display: flex; justify-content: center; }
+  /* ---- stat row ---- */
+  .stats { display: flex; flex-wrap: wrap; margin-top: 8px; }
+  .stat { padding: 4px 48px 4px 0; margin-right: 48px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: 0; margin-right: 0; }
+  .stat .num { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .stat .num small { font-size: 17px; font-weight: 500; margin-left: 2px; }
+  .stat .cap { color: var(--text-gray); font-size: 14px; margin-top: 4px; }
+
+  /* ---- feature cards ---- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  .card { background: var(--card); border-radius: 8px; padding: 32px 28px 36px; }
+  .card svg { width: 40px; height: 40px; stroke: var(--text); fill: none; stroke-width: 1.6; margin-bottom: 22px; }
+  .card h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .card p { color: var(--text-gray); font-size: 14.5px; }
+  .card code { font-family: var(--mono); font-size: 0.85em; background: rgba(23,26,32,0.07); padding: 1px 5px; border-radius: 3px; }
+
+  /* ---- dark menu/specs section ---- */
+  .dark-section { background: var(--dark); color: #fff; }
+  .dark-section h2 { color: #fff; }
+  .dark-section .lede { color: var(--dark-text-gray); }
+  .dark-grid { display: flex; gap: 72px; align-items: flex-start; flex-wrap: wrap; }
   .menu-card {
-    width: 330px; background: rgba(30, 33, 39, 0.95);
+    flex: 0 0 330px; background: #23262c;
     border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
     padding: 10px 0; font-size: 13.5px;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.5);
   }
   .menu-card img.car { width: 290px; display: block; margin: 2px auto 6px; }
   .mrow { display: flex; justify-content: space-between; padding: 3px 16px; }
-  .mrow .k { color: var(--text-dim); }
+  .mrow .k { color: var(--dark-text-gray); }
   .mrow .v { font-variant-numeric: tabular-nums; }
   .mrow.title { font-weight: 600; font-size: 14px; }
   .msep { height: 1px; background: rgba(255,255,255,0.09); margin: 7px 12px; }
   .bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.12); margin: 5px 16px 7px; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 68%; background: #30d158; }
-  .mrow.action { color: var(--text); padding: 4px 16px; }
-  .mrow.action .kbd { color: var(--text-faint); }
-  .illustration-note {
-    text-align: center; margin-top: 22px; font-size: 12px; color: var(--text-faint);
-  }
+  .mrow.action { padding: 4px 16px; }
+  .mrow.action .kbd { color: rgba(255,255,255,0.4); }
 
-  /* ---- features ---- */
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; }
-  .card {
-    border: 1px solid var(--line); border-radius: 8px; padding: 26px 24px;
-    background: var(--bg-raised);
-  }
-  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.02em; }
-  .card p { font-size: 14px; color: var(--text-dim); }
+  .specs { flex: 1 1 420px; }
+  .specs h3 { font-size: 17px; font-weight: 600; margin: 0 0 24px; }
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 28px 24px; }
+  .spec .k { color: var(--dark-text-gray); font-size: 13.5px; }
+  .spec .v { font-weight: 600; font-size: 15px; margin-top: 2px; }
+  .spec .v code { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .spec-rule { height: 1px; background: var(--line-dark); margin: 32px 0; }
+  .dark-note { margin-top: 40px; font-size: 12.5px; color: rgba(255,255,255,0.35); }
 
   /* ---- setup ---- */
-  .step { display: flex; gap: 26px; padding: 34px 0; border-top: 1px solid var(--line); }
-  .step:first-of-type { border-top: 0; padding-top: 10px; }
-  .stepnum {
-    flex: 0 0 44px; height: 44px; border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 15px; font-variant-numeric: tabular-nums;
-  }
-  .step h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-  .step p { color: var(--text-dim); font-size: 15px; max-width: 640px; }
+  .setup-section { background: var(--card); }
+  .step { display: flex; gap: 32px; padding: 36px 0; border-top: 1px solid var(--line); }
+  .steps .step:first-child { border-top: 0; padding-top: 0; }
+  .stepnum { flex: 0 0 auto; font-size: 15px; font-weight: 600; color: var(--text-faint); padding-top: 3px; }
+  .step h3 { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .step p { color: var(--text-gray); font-size: 15px; max-width: 660px; }
   .step p + p { margin-top: 8px; }
-  .step code.inline, li code, p code {
-    font-family: var(--mono); font-size: 0.88em; background: rgba(255,255,255,0.07);
-    padding: 1px 6px; border-radius: 4px;
+  .step p strong { color: var(--text); }
+  .step a { color: var(--text); }
+  p code, .step code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: rgba(23,26,32,0.07); padding: 1px 6px; border-radius: 3px;
   }
   pre {
-    position: relative; margin-top: 14px; padding: 16px 18px;
-    background: #0f1216; border: 1px solid var(--line); border-radius: 8px;
+    position: relative; margin-top: 16px; padding: 18px 20px; max-width: 660px;
+    background: #fff; border-radius: 8px;
     font-family: var(--mono); font-size: 13px; line-height: 1.6;
-    overflow-x: auto; color: #d7d9dc; max-width: 640px;
+    overflow-x: auto; color: var(--text);
   }
+  pre code { background: none; padding: 0; }
   pre .copy {
-    position: absolute; top: 8px; right: 8px; border: 1px solid var(--line);
-    background: rgba(255,255,255,0.05); color: var(--text-dim);
-    font: 11px/1 inherit; font-family: inherit; padding: 6px 10px;
-    border-radius: 5px; cursor: pointer;
+    position: absolute; top: 10px; right: 10px;
+    background: var(--card); color: var(--text-gray); border: 0;
+    font-family: inherit; font-size: 11px; font-weight: 500;
+    padding: 6px 12px; border-radius: 4px; cursor: pointer;
   }
   pre .copy:hover { color: var(--text); }
-  .tip {
-    margin-top: 14px; padding: 14px 18px; max-width: 640px;
-    border-left: 2px solid var(--red); background: rgba(232,33,39,0.06);
-    font-size: 14px; color: var(--text-dim); border-radius: 0 6px 6px 0;
-  }
-  .timing { color: var(--text-faint); font-size: 13px; margin-left: 10px; }
+  .tip { margin-top: 14px; max-width: 660px; font-size: 14px; color: var(--text-gray); }
+  .tip strong { color: var(--text); }
 
   /* ---- faq ---- */
-  details {
-    border-top: 1px solid var(--line); padding: 20px 0;
-  }
+  details { border-top: 1px solid var(--line); padding: 22px 0; }
   details:last-of-type { border-bottom: 1px solid var(--line); }
   summary {
-    cursor: pointer; font-size: 16px; font-weight: 500; list-style: none;
-    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; font-size: 17px; font-weight: 500; list-style: none;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
   }
   summary::-webkit-details-marker { display: none; }
-  summary::after { content: "+"; color: var(--text-dim); font-size: 20px; font-weight: 300; }
+  summary::after { content: "+"; color: var(--text-gray); font-size: 22px; font-weight: 300; flex: 0 0 auto; }
   details[open] summary::after { content: "–"; }
-  details p { margin-top: 12px; color: var(--text-dim); font-size: 15px; max-width: 700px; }
+  details p { margin-top: 12px; color: var(--text-gray); font-size: 15px; max-width: 760px; }
+  details p a { color: var(--text); }
 
   /* ---- footer ---- */
-  footer { border-top: 1px solid var(--line); padding: 46px 0 60px; font-size: 13px; color: var(--text-faint); }
-  footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: center; }
-  footer a { color: var(--text-dim); text-decoration: none; }
-  footer a:hover { color: var(--text); }
+  footer { padding: 40px 0 56px; font-size: 12.5px; color: var(--text-gray); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+  footer a { text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
   footer .spacer { margin-left: auto; }
 
-  @media (max-width: 640px) {
-    .step { flex-direction: column; gap: 12px; }
-    nav a.hide-sm { display: none; }
+  @media (max-width: 720px) {
+    .step { flex-direction: column; gap: 8px; }
+    .stat { border-right: 0; padding-right: 0; margin: 0 0 24px; flex: 1 1 100%; }
+    nav .links a:not(.keep) { display: none; }
   }
 </style>
 </head>
@@ -181,33 +183,93 @@
 
 <nav>
   <div class="wrap">
-    <a class="wordmark" href="#"><img src="icon.png" alt="">Teslaris</a>
-    <a href="#features">Features</a>
-    <a href="#costs" class="hide-sm">Costs</a>
-    <a href="#setup">Setup</a>
-    <a href="#faq" class="hide-sm">FAQ</a>
-    <a href="https://github.com/simonbusborg/teslaris">GitHub</a>
+    <a class="wordmark" href="#">Teslaris</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#menu">In the menu</a>
+      <a href="#setup">Setup</a>
+      <a href="#faq">FAQ</a>
+      <a class="keep" href="https://github.com/simonbusborg/teslaris">GitHub</a>
+    </div>
   </div>
 </nav>
 
-<header class="wrap">
-  <img class="appicon" src="icon.png" alt="Teslaris app icon">
-  <div class="kicker">For macOS 13+</div>
-  <h1>Your Tesla,<br>in the menu bar.</h1>
-  <p class="sub">Battery, range and charging status at a glance. A tiny native app —
-  no Electron, no accounts, no subscription. Your data travels between your
-  Mac and Tesla. Nowhere else.</p>
-  <div class="cta">
-    <a class="btn btn-primary" href="https://github.com/simonbusborg/teslaris/releases/latest">Download</a>
-    <a class="btn btn-ghost" href="https://github.com/simonbusborg/teslaris">View source</a>
+<header>
+  <div class="wrap">
+    <h1>Your Tesla, in the menu bar</h1>
+    <p class="sub">Battery, range and charging status at a glance. A tiny native
+    macOS app — no Electron, no accounts, no subscription.</p>
+    <div class="cta">
+      <a class="btn btn-dark" href="https://github.com/simonbusborg/teslaris/releases/latest">Download</a>
+      <a class="btn btn-light" href="#setup">Setup guide</a>
+    </div>
+    <p class="fineprint">Free and open source · macOS 13+ · Not affiliated with Tesla</p>
   </div>
-  <div class="disclaimer">Independent open source project <span class="dot">·</span> not affiliated with Tesla</div>
+  <img class="hero-car" alt="Side view of a Tesla Model 3"
+    src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1">
+  <p class="caption">Render from Tesla's configurator — the same image the app shows for your car.</p>
 </header>
 
-<section id="preview">
+<section id="costs">
   <div class="wrap">
-    <div class="label">At a glance</div>
-    <div class="showcase">
+    <h2>Free — by architecture, not by promise</h2>
+    <p class="lede">Tesla bills Fleet API usage per request and grants every developer
+    account free monthly credit. Teslaris has no server and no shared key: you bring your
+    own free Tesla developer application, so the app's modest polling stays inside your
+    own credit. Nothing to subscribe to, and no third party ever sees your data.</p>
+    <div class="stats">
+      <div class="stat"><div class="num">$10<small>/mo</small></div><div class="cap">Free Fleet API credit from Tesla</div></div>
+      <div class="stat"><div class="num">$5–8<small>/mo</small></div><div class="cap">Typical Teslaris usage</div></div>
+      <div class="stat"><div class="num">0</div><div class="cap">Servers between your Mac and Tesla</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Small app, sharp focus</h2>
+    <p class="lede">Everything you glance at, nothing you don't.</p>
+    <div class="cards">
+      <div class="card">
+        <svg viewBox="0 0 24 24"><rect x="2" y="8" width="17" height="9" rx="2"/><path d="M21.5 11v3"/><rect x="5" y="10.5" width="7" height="4" rx="1" fill="currentColor" stroke="none"/></svg>
+        <h3>Live, but frugal</h3><p>Refreshes every 15 minutes — every minute while
+        charging, when the numbers actually move. Nothing polls your car to death.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 1 6 6c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9a6 6 0 0 1 6-6z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
+        <h3>Charging notifications</h3><p>Charging started, charging complete, charger
+        lost power. Each one can be switched off.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 24 24"><path d="M12 4c-5 0-8 4.5-8 8s3 8 8 8 8-4.5 8-8-3-8-8-8z" opacity="0"/><path d="M3 13c2-4.5 5.5-7 9-7s7 2.5 9 7c-2 4.5-5.5 7-9 7s-7-2.5-9-7z"/><circle cx="12" cy="13" r="3"/></svg>
+        <h3>Read-only by design</h3><p>The only scope requested is
+        <code>vehicle_device_data</code>. Teslaris cannot unlock, wake, or drive your car.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <h3>Keychain, not plaintext</h3><p>Credentials and session tokens live in the
+        macOS Keychain. Nothing is written to disk in the clear.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 24 24"><path d="M3 14c3-1.5 5-5 6-9 1.5 3 2 5 6 6-2 1-3 2.5-3.5 5-1.5-1-4-2-8.5-2z"/><path d="M17 4l.8 2.2L20 7l-2.2.8L17 10l-.8-2.2L14 7l2.2-.8z"/></svg>
+        <h3>Never wakes the car</h3><p>A sleeping Tesla stays asleep — wakes cost credit
+        and battery. You see the last known data, marked as such.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18" opacity="0"/><path d="M8 21h8M12 18v3"/></svg>
+        <h3>Native and tiny</h3><p>Pure AppKit, one small binary. No Electron, no
+        SwiftUI, no background services. MIT licensed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dark-section" id="menu">
+  <div class="wrap">
+    <h2>In the menu bar</h2>
+    <p class="lede">Click the icon and everything is there. The icon itself reflects
+    charging state, and the menu bar text shows your pick: battery, range, or time to full.</p>
+    <div class="dark-grid">
       <div class="menu-card" role="img" aria-label="Illustration of the Teslaris menu">
         <img class="car" alt=""
           src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1">
@@ -224,102 +286,84 @@
         <div class="mrow action"><span>Refresh Now</span><span class="kbd">⌘R</span></div>
         <div class="mrow action"><span>Settings…</span><span class="kbd">⌘,</span></div>
       </div>
+      <div class="specs">
+        <h3>Specifications</h3>
+        <div class="spec-grid">
+          <div class="spec"><div class="k">Refresh, parked</div><div class="v">15 min</div></div>
+          <div class="spec"><div class="k">Refresh, charging</div><div class="v">1 min</div></div>
+          <div class="spec"><div class="k">Sleeping car</div><div class="v">Never woken</div></div>
+        </div>
+        <div class="spec-rule"></div>
+        <div class="spec-grid">
+          <div class="spec"><div class="k">API scope</div><div class="v"><code>vehicle_device_data</code></div></div>
+          <div class="spec"><div class="k">Credential storage</div><div class="v">macOS Keychain</div></div>
+          <div class="spec"><div class="k">Third parties</div><div class="v">None</div></div>
+        </div>
+        <div class="spec-rule"></div>
+        <div class="spec-grid">
+          <div class="spec"><div class="k">Framework</div><div class="v">Pure AppKit</div></div>
+          <div class="spec"><div class="k">Requires</div><div class="v">macOS 13+</div></div>
+          <div class="spec"><div class="k">License</div><div class="v">MIT</div></div>
+        </div>
+        <div class="dark-note">Illustration of the menu. The car render comes from Tesla's
+        configurator, exactly as in the app.</div>
+      </div>
     </div>
-    <p class="illustration-note">Faithful illustration of the menu — the car render comes from
-    Tesla's configurator, exactly as it does in the app.</p>
   </div>
 </section>
 
-<section id="features">
+<section class="setup-section" id="setup">
   <div class="wrap">
-    <div class="label">Features</div>
-    <h2>Small app, sharp focus.</h2>
-    <div class="grid">
-      <div class="card"><h3>Live, but frugal</h3><p>Refreshes every 15 minutes — every minute
-        while charging, when the numbers actually move. Nothing polls your car to death.</p></div>
-      <div class="card"><h3>Never wakes the car</h3><p>A sleeping Tesla stays asleep — wakes cost
-        API credit and battery. You see the last known data, marked as such.</p></div>
-      <div class="card"><h3>Charging notifications</h3><p>Charging started, charging complete,
-        charger lost power. Each one can be turned off.</p></div>
-      <div class="card"><h3>Keychain, not plaintext</h3><p>Credentials and session tokens live in
-        the macOS Keychain. Nothing is written to disk in the clear.</p></div>
-      <div class="card"><h3>Read-only by design</h3><p>Teslaris requests one scope:
-        <code>vehicle_device_data</code>. It cannot unlock, wake, or drive your car.</p></div>
-      <div class="card"><h3>Native and tiny</h3><p>Pure AppKit. One small binary. No Electron, no
-        SwiftUI, no background services, MIT licensed.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="costs">
-  <div class="wrap">
-    <div class="label">Costs</div>
-    <h2>Free — by architecture, not by promise.</h2>
-    <p style="max-width:700px; color:var(--text-dim)">Tesla bills Fleet API usage per request, and
-    grants every developer account <strong style="color:var(--text)">$10 of free credit each
-    month</strong>. Teslaris has no server and ships no shared API key: you register your own
-    (free) Tesla developer application once, and the app's modest polling — roughly
-    <strong style="color:var(--text)">$5–8/month</strong> of usage — stays comfortably inside
-    your own free credit. There is nothing to subscribe to, and no third party ever sees your
-    data.</p>
-  </div>
-</section>
-
-<section id="setup">
-  <div class="wrap">
-    <div class="label">Setup</div>
-    <h2>One-time setup, ~20 minutes.<span class="timing">You'll never touch it again.</span></h2>
-
-    <div class="step">
-      <div class="stepnum">1</div>
-      <div>
-        <h3>Generate a key pair</h3>
-        <p>Tesla requires registering a public key, even for read-only apps. In Terminal:</p>
-        <pre><button class="copy">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
+    <h2>One-time setup</h2>
+    <p class="lede">About 20 minutes, and you'll never touch it again. Teslaris uses
+    <strong>your own free Tesla developer application</strong>, which is why it costs
+    nothing and shares nothing.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="stepnum">01</div>
+        <div>
+          <h3>Generate a key pair</h3>
+          <p>Tesla requires registering a public key, even for read-only apps. In Terminal:</p>
+          <pre><button class="copy">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
 openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></pre>
-        <p>Keep <code>private-key.pem</code> somewhere safe. Teslaris never needs it — it only
-        matters if you later want vehicle commands.</p>
+          <p class="tip">Keep <code>private-key.pem</code> somewhere safe. Teslaris never
+          needs it — it only matters if you later want vehicle commands.</p>
+        </div>
       </div>
-    </div>
-
-    <div class="step">
-      <div class="stepnum">2</div>
-      <div>
-        <h3>Host the public key</h3>
-        <p>Tesla verifies your app by fetching the public key from a domain you control, at
-        exactly this path:</p>
-        <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
-        <div class="tip">Easiest way: a GitHub Pages site. Create a repository named
-        <code>username.github.io</code>, commit the key file under
-        <code>.well-known/appspecific/</code>, and it's live at
-        <code>https://username.github.io/…</code> a minute later.</div>
+      <div class="step">
+        <div class="stepnum">02</div>
+        <div>
+          <h3>Host the public key</h3>
+          <p>Tesla verifies your app by fetching the key from a domain you control, at
+          exactly this path:</p>
+          <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
+          <p class="tip"><strong>Easiest way:</strong> a GitHub Pages site. Create a
+          repository named <code>username.github.io</code>, commit the key file under
+          <code>.well-known/appspecific/</code>, and it's live a minute later.</p>
+        </div>
       </div>
-    </div>
-
-    <div class="step">
-      <div class="stepnum">3</div>
-      <div>
-        <h3>Create your Tesla developer app</h3>
-        <p>Sign in at <a href="https://developer.tesla.com">developer.tesla.com</a> with your
-        Tesla account → <em>Create new application</em>. It's free.</p>
-        <p>Use your domain from step 2 as the <em>Allowed Origin</em>, add
-        <code>http://localhost:8973/callback</code> as an <em>Allowed Redirect URI</em>, and
-        request the <code>vehicle_device_data</code> scope. Note the
-        <strong style="color:var(--text)">Client ID</strong> and
-        <strong style="color:var(--text)">Client Secret</strong>.</p>
+      <div class="step">
+        <div class="stepnum">03</div>
+        <div>
+          <h3>Create your Tesla developer app</h3>
+          <p>Sign in at <a href="https://developer.tesla.com">developer.tesla.com</a> with
+          your Tesla account and create a new application — it's free.</p>
+          <p>Use your domain from step 2 as the <strong>Allowed Origin</strong>, add
+          <code>http://localhost:8973/callback</code> as an <strong>Allowed Redirect
+          URI</strong>, and request the <code>vehicle_device_data</code> scope. Note the
+          <strong>Client ID</strong> and <strong>Client Secret</strong>.</p>
+        </div>
       </div>
-    </div>
-
-    <div class="step">
-      <div class="stepnum">4</div>
-      <div>
-        <h3>Let Teslaris do the rest</h3>
-        <p>Open Teslaris → <em>Settings…</em> → paste your Client ID, Client Secret and key
-        domain, pick your region, then click
-        <strong style="color:var(--text)">Register App with Tesla</strong> — the app performs
-        the one-time partner registration for you (this used to be a curl incantation).</p>
-        <p>Then <strong style="color:var(--text)">Save &amp; Sign in with Tesla…</strong> — your
-        browser opens Tesla's own login page, and you're done.</p>
+      <div class="step">
+        <div class="stepnum">04</div>
+        <div>
+          <h3>Let Teslaris do the rest</h3>
+          <p>Open Teslaris → <strong>Settings…</strong> → paste your Client ID, Client
+          Secret and key domain, pick your region, then click <strong>Register App with
+          Tesla</strong> — the app performs the one-time partner registration for you.</p>
+          <p>Then <strong>Save &amp; Sign in with Tesla…</strong> — your browser opens
+          Tesla's own login page, and you're done.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -327,19 +371,18 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
 
 <section id="faq">
   <div class="wrap">
-    <div class="label">FAQ</div>
-    <h2>Questions, answered plainly.</h2>
+    <h2>Questions, answered plainly</h2>
     <details>
       <summary>Is my data safe?</summary>
-      <p>Teslaris talks only to Tesla: the official Fleet API for your car's data, and Tesla's
-      public image renderer for the car picture. There is no Teslaris server, no analytics, no
-      third party. Credentials and tokens are stored in the macOS Keychain.</p>
+      <p>Teslaris talks only to Tesla: the official Fleet API for your car's data, and
+      Tesla's public image renderer for the car picture. There is no Teslaris server, no
+      analytics, no third party. Credentials and tokens are stored in the macOS Keychain.</p>
     </details>
     <details>
       <summary>Will it wake my car or drain the battery?</summary>
-      <p>No. Teslaris never wakes a sleeping vehicle — it shows the last known data, marked as
-      such, until the car wakes on its own. Wakes cost API credit and vampire-drain the battery,
-      so not waking is a feature, not a limitation.</p>
+      <p>No. Teslaris never wakes a sleeping vehicle — it shows the last known data,
+      marked as such, until the car wakes on its own. Wakes cost API credit and drain the
+      battery, so not waking is a feature, not a limitation.</p>
     </details>
     <details>
       <summary>Can it unlock or control the car?</summary>
@@ -348,31 +391,32 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
     </details>
     <details>
       <summary>Why do I need my own Tesla developer app?</summary>
-      <p>Tesla bills API usage per developer account, with $10/month free. If Teslaris shipped
-      one shared key, all users would drain a single account and the app would have to charge a
-      subscription. With your own free key, your usage stays inside your own free credit —
-      forever free, structurally.</p>
+      <p>Tesla bills API usage per developer account, with $10/month free. If Teslaris
+      shipped one shared key, all users would drain a single account and the app would
+      have to charge a subscription. With your own free key, your usage stays inside your
+      own free credit — forever free, structurally.</p>
     </details>
     <details>
       <summary>Which cars are supported?</summary>
-      <p>Model S, 3, X and Y, in North America / Asia-Pacific and Europe / Middle East / Africa.
-      Cybertruck works too, minus the car picture. China isn't supported yet (Tesla uses a
-      separate auth system there).</p>
+      <p>Model S, 3, X and Y, in North America / Asia-Pacific and Europe / Middle East /
+      Africa. Cybertruck works too, minus the car picture. China isn't supported yet
+      (Tesla uses a separate auth system there).</p>
     </details>
     <details>
       <summary>Is this a Tesla product?</summary>
-      <p>No. Teslaris is an independent, MIT-licensed open source project and is not affiliated
-      with, endorsed by, or sponsored by Tesla, Inc. "Tesla" and the model names are Tesla's
-      trademarks, used only to describe compatibility.</p>
+      <p>No. Teslaris is an independent, MIT-licensed open source project and is not
+      affiliated with, endorsed by, or sponsored by Tesla, Inc. "Tesla" and the model
+      names are Tesla's trademarks, used only to describe compatibility.</p>
     </details>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <span>© Simon Busborg · MIT licensed</span>
+    <span>Teslaris © Simon Busborg</span>
     <a href="https://github.com/simonbusborg/teslaris">GitHub</a>
-    <a href="https://github.com/simonbusborg/polaris">Polaris — the same app for Polestar</a>
+    <a href="https://github.com/simonbusborg/teslaris/blob/main/LICENSE">MIT license</a>
+    <a href="https://github.com/simonbusborg/polaris">Polaris — for Polestar</a>
     <span class="spacer">Not affiliated with Tesla</span>
   </div>
 </footer>
