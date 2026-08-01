@@ -1,0 +1,66 @@
+//
+//  Notifier.swift
+//  Teslaris
+//
+//  Local notifications for charging milestones, derived by comparing
+//  consecutive refreshes. UNUserNotificationCenter only works from a real
+//  .app bundle, so everything is a no-op under `swift run`.
+//
+
+import AppKit
+import UserNotifications
+
+final class Notifier: NSObject, UNUserNotificationCenterDelegate {
+
+    private let available = Bundle.main.bundleURL.pathExtension == "app"
+    private var authorized = false
+
+    func requestAuthorizationIfNeeded() {
+        guard available else { return }
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        center.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
+            self?.authorized = granted
+        }
+    }
+
+    func vehicleDataDidUpdate(old: VehicleData?, new: VehicleData) {
+        guard available, authorized, let old else { return }
+
+        let done = new.chargingState == "Complete" || new.batteryPercentage >= 99.5
+        let trouble = new.chargingState == "NoPower"
+
+        if !old.isCharging && new.isCharging {
+            guard Preferences.notifyChargingStarted else { return }
+            var body = String(format: "%.0f%%", new.batteryPercentage)
+            if let minutes = new.minutesToFull, minutes > 0 {
+                body += " · full in \(StatusItemController.shortDuration(minutes: minutes))"
+            }
+            post(title: "Charging started", body: body)
+        } else if old.isCharging && !new.isCharging && done {
+            guard Preferences.notifyChargingComplete else { return }
+            post(title: "Charging complete",
+                 body: String(format: "%.0f%% · %@ range", new.batteryPercentage,
+                              StatusItemController.distance(km: new.rangeKm)))
+        } else if old.isCharging && trouble {
+            guard Preferences.notifyChargingProblem else { return }
+            post(title: "Charging problem",
+                 body: String(format: "Charger reported no power at %.0f%%", new.batteryPercentage))
+        }
+    }
+
+    private func post(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                            content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // Menu bar apps count as "foreground"; without this the banner is suppressed.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
+    }
+}
