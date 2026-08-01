@@ -13,6 +13,20 @@ Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 (the same app for Polestar). Docs and setup guide:
 [simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
 
+**[Download the latest release](https://github.com/simonbusborg/teslaris/releases/latest)**
+
+## Install
+
+Download `Teslaris.dmg` from the
+[latest release](https://github.com/simonbusborg/teslaris/releases/latest),
+open it, and drag Teslaris to Applications (a `Teslaris.zip` is also
+attached for scripted installs). Releases are built by GitHub Actions —
+cut with `make release VERSION=x.y.z`, which bumps `Info.plist`, tags,
+and pushes. macOS blocks the first launch of unsigned releases ("Apple
+could not verify…"): click **Done**, then **System Settings → Privacy &
+Security → Open Anyway**. On macOS 14 and earlier, **right-click → Open
+→ Open** also works. This happens once.
+
 ## Features
 
 - Battery %, range (km/mi), charging status, charging power, charge limit
