@@ -30,6 +30,10 @@ final class StatusItemController {
         return f
     }()
 
+    private let carImages = CarImageLoader()
+    /// Last render arguments, replayed when a car image arrives late.
+    private var lastRender: (data: VehicleData?, error: String?, authenticated: Bool)?
+
     init(onRefresh: @escaping () -> Void, onSettings: @escaping () -> Void) {
         self.onRefresh = onRefresh
         self.onSettings = onSettings
@@ -40,6 +44,11 @@ final class StatusItemController {
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         }
+
+        carImages.onLoad = { [weak self] in
+            guard let self, let last = self.lastRender else { return }
+            self.render(data: last.data, error: last.error, authenticated: last.authenticated)
+        }
     }
 
     // MARK: - Rendering
@@ -49,6 +58,7 @@ final class StatusItemController {
     }
 
     func render(data: VehicleData?, error: String?, authenticated: Bool) {
+        lastRender = (data, error, authenticated)
         let (symbol, tint) = Self.icon(for: data)
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Teslaris")
         statusItem.button?.contentTintColor = tint
@@ -87,6 +97,12 @@ final class StatusItemController {
         let menu = NSMenu()
 
         if let data {
+            if let vin = data.vin, let image = carImages.image(for: vin) {
+                let item = NSMenuItem()
+                item.view = CarImageRowView(image: image)
+                menu.addItem(item)
+            }
+
             // Identity
             if let name = data.vehicleName, !name.isEmpty {
                 menu.addItem(rowItem(name, bold: true))

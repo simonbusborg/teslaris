@@ -4,9 +4,10 @@ Your Tesla, in the menu bar.
 
 Teslaris is a tiny native macOS app that shows your Tesla's battery, range,
 and charging status in the menu bar. Pure AppKit — no Electron, no SwiftUI,
-no background services. It talks only to Tesla's official Fleet API, using
-**your own** (free) Tesla developer application, so your data goes between
-your Mac and Tesla — nowhere else, and there is nothing to subscribe to.
+no background services. It talks only to Tesla: the official Fleet API,
+using **your own** (free) Tesla developer application, plus Tesla's public
+image renderer for the car picture. Your data goes between your Mac and
+Tesla — nowhere else, and there is nothing to subscribe to.
 
 Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 (the same app for Polestar).
@@ -16,6 +17,11 @@ Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 - Battery %, range (km/mi), charging status, charging power, charge limit
   and time-to-full — refreshed every 15 minutes, or every minute while
   charging
+- A side view of your car at the top of the menu, auto-detected from the
+  VIN and rendered by Tesla's configurator (free — not Fleet API traffic).
+  The default is a neutral white car of the right model; to match your
+  paint and wheels:
+  `defaults write com.weareheavy.teslaris car_image_options '$MTY13,$PRED,$WY20P,$INPB0'`
 - Notifications when charging starts, completes, or the charger loses power
 - Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit
   and battery) — the menu shows the last known data, marked as such
