@@ -80,6 +80,10 @@ class Handler(BaseHTTPRequestHandler):
                 "expires_in": 3600,
                 "token_type": "Bearer",
             })
+        elif self.path == "/api/1/partner_accounts":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            self._json({"response": {"domain": body.get("domain", "")}})
         else:
             self._json({"error": "not found"}, 404)
 

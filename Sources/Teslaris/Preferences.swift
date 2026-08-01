@@ -54,6 +54,13 @@ enum Preferences {
         set { d.set(newValue, forKey: "tesla_vin") }
     }
 
+    /// Domain hosting the public key (the app's one-time partner
+    /// registration posts it to Tesla). Example: "username.github.io".
+    static var domain: String {
+        get { d.string(forKey: "tesla_domain") ?? "" }
+        set { d.set(newValue, forKey: "tesla_domain") }
+    }
+
     static var region: Region {
         get {
             let raw = d.string(forKey: "tesla_region") ?? ""

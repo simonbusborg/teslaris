@@ -14,6 +14,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private let clientIdField = NSTextField()
     private let clientSecretField = NSSecureTextField()
+    private let domainField = NSTextField()
     private let regionPopup = NSPopUpButton()
     private let displayPopup = NSPopUpButton()
     private let unitPopup = NSPopUpButton()
@@ -24,10 +25,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private let onSave: () -> Void
     private let onSignIn: () -> Void
+    private let onRegister: (String) -> Void
 
-    init(onSave: @escaping () -> Void, onSignIn: @escaping () -> Void) {
+    init(onSave: @escaping () -> Void, onSignIn: @escaping () -> Void,
+         onRegister: @escaping (String) -> Void) {
         self.onSave = onSave
         self.onSignIn = onSignIn
+        self.onRegister = onRegister
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 440, height: 300),
@@ -58,10 +62,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
         clientIdField.placeholderString = "Tesla developer app Client ID"
         clientSecretField.placeholderString = "Client Secret"
+        domainField.placeholderString = "username.github.io (hosts your public key)"
         // Editable text fields have no useful intrinsic width; without one,
         // the grid hands the window's spare width to the label column and
         // the whole form ends up shoved against the right edge.
-        for field in [clientIdField, clientSecretField] {
+        for field in [clientIdField, clientSecretField, domainField] {
             field.translatesAutoresizingMaskIntoConstraints = false
             field.widthAnchor.constraint(equalToConstant: 270).isActive = true
         }
@@ -79,11 +84,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guideLink.lineBreakMode = .byWordWrapping
         guideLink.preferredMaxLayoutWidth = 270
 
+        let registerButton = NSButton(title: "Register App with Tesla",
+                                      target: self, action: #selector(registerAction))
+
         let grid = NSGridView(views: [
             [label("Client ID:"), clientIdField],
             [label("Client Secret:"), clientSecretField],
+            [label("Key domain:"), domainField],
             [label("Region:"), regionPopup],
             [NSGridCell.emptyContentView, guideLink],
+            [NSGridCell.emptyContentView, registerButton],
             [label("Show in bar:"), displayPopup],
             [label("Distances:"), unitPopup],
             [NSGridCell.emptyContentView, launchCheckbox],
@@ -95,15 +105,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         grid.columnSpacing = 10
         grid.rowAlignment = .firstBaseline
         grid.column(at: 0).xPlacement = .trailing
-        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox,
+        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox, registerButton,
                         notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] {
             grid.cell(for: control)?.xPlacement = .leading
         }
-        grid.row(at: 3).topPadding = -6
-        grid.row(at: 4).topPadding = 10
-        grid.row(at: 7).topPadding = 10
-        grid.row(at: 8).topPadding = -6
-        grid.row(at: 9).topPadding = -6
+        grid.row(at: 4).topPadding = -6
+        grid.row(at: 5).topPadding = -4
+        grid.row(at: 6).topPadding = 10
+        grid.row(at: 9).topPadding = 10
+        grid.row(at: 10).topPadding = -6
+        grid.row(at: 11).topPadding = -6
         grid.translatesAutoresizingMaskIntoConstraints = false
 
         let signInButton = NSButton(title: "Save & Sign in with Tesla…",
@@ -141,6 +152,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private func loadValues() {
         clientIdField.stringValue = Preferences.clientId
         clientSecretField.stringValue = ((try? Keychain.readClientSecret()) ?? nil) ?? ""
+        domainField.stringValue = Preferences.domain
         regionPopup.selectItem(withTitle: Preferences.region.rawValue)
         displayPopup.selectItem(withTitle: Preferences.displayOption.rawValue)
         unitPopup.selectItem(withTitle: Preferences.distanceUnit.rawValue)
@@ -156,6 +168,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     @discardableResult
     private func persist() -> Bool {
         Preferences.clientId = clientIdField.stringValue.trimmingCharacters(in: .whitespaces)
+        Preferences.domain = domainField.stringValue.trimmingCharacters(in: .whitespaces)
         if let title = regionPopup.titleOfSelectedItem, let region = Region(rawValue: title) {
             Preferences.region = region
         }
@@ -193,6 +206,22 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guard persist() else { return }
         window?.orderOut(nil)
         onSave()
+    }
+
+    /// One-time partner registration, run by the app instead of the old
+    /// curl incantation. Keeps the window open so Sign in follows.
+    @objc private func registerAction() {
+        guard persist() else { return }
+        let domain = Preferences.domain
+        guard !domain.isEmpty else {
+            let alert = NSAlert()
+            alert.messageText = "Key domain needed"
+            alert.informativeText = "Enter the domain that hosts your public key "
+                + "(e.g. username.github.io) so Tesla can verify it."
+            alert.runModal()
+            return
+        }
+        onRegister(domain)
     }
 
     @objc private func signInAction() {

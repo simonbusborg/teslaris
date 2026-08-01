@@ -11,6 +11,14 @@ final class CarImageTests: XCTestCase {
         XCTAssertEqual(CarImage.modelCode(vin: "lrw3e7fs1nc000000"), "m3")   // case-insensitive
     }
 
+    func testModelName() {
+        XCTAssertEqual(CarImage.modelName(vin: "5YJ3E7EB0LF000000"), "Model 3")
+        XCTAssertEqual(CarImage.modelName(vin: "7SAYGDEE5PA000000"), "Model Y")
+        XCTAssertEqual(CarImage.modelName(vin: "7G2CEHED8RA000000"), "Cybertruck")
+        XCTAssertNil(CarImage.modelName(vin: "5YJ"))
+        XCTAssertNil(CarImage.modelName(vin: ""))
+    }
+
     func testUnknownModelsHaveNoImage() {
         XCTAssertNil(CarImage.modelCode(vin: "7G2CEHED8RA000000"))   // Cybertruck
         XCTAssertNil(CarImage.modelCode(vin: ""))

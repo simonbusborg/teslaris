@@ -28,6 +28,20 @@ enum CarImage {
         }
     }
 
+    /// Human name for the menu ("Model 3"); nil when the VIN is unknown.
+    /// Cybertruck gets a name even though it gets no compositor image.
+    static func modelName(vin: String) -> String? {
+        guard vin.count >= 4 else { return nil }
+        switch Array(vin.uppercased())[3] {
+        case "S": return "Model S"
+        case "3": return "Model 3"
+        case "X": return "Model X"
+        case "Y": return "Model Y"
+        case "C": return "Cybertruck"
+        default: return nil
+        }
+    }
+
     /// Verified-working option sets, already percent-encoded ($ → %24).
     /// The compositor errors (404/412) unless all four groups are present:
     /// trim, paint, wheels, interior.

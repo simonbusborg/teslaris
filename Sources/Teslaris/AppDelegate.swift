@@ -191,10 +191,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 onSignIn: { [weak self] in
                     self?.applyLaunchAtLogin()
                     self?.signInAndStart()
+                },
+                onRegister: { [weak self] domain in
+                    self?.registerPartnerAccount(domain: domain)
                 }
             )
         }
         settingsController?.show()
+    }
+
+    /// One-time partner registration against Tesla, reporting the outcome
+    /// in an alert. Failure here is common (key not yet reachable), so the
+    /// error text carries the URL Tesla checks.
+    private func registerPartnerAccount(domain: String) {
+        Task {
+            do {
+                try await fleetAPI.registerPartnerAccount(domain: domain)
+                await MainActor.run {
+                    self.showAlert(title: "Registered with Tesla",
+                                   text: "Your app is registered for \(domain). "
+                                       + "You can sign in now.")
+                }
+            } catch {
+                await MainActor.run {
+                    self.showAlert(title: "Registration failed",
+                                   text: error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func showAlert(title: String, text: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = text
+        alert.runModal()
     }
 
     private func applyLaunchAtLogin() {

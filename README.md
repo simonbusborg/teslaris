@@ -10,7 +10,8 @@ image renderer for the car picture. Your data goes between your Mac and
 Tesla — nowhere else, and there is nothing to subscribe to.
 
 Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
-(the same app for Polestar).
+(the same app for Polestar). Docs and setup guide:
+[simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
 
 ## Features
 
@@ -69,23 +70,14 @@ public file (GitHub Pages works — you already have GitHub).
    Request the `vehicle_device_data` scope. Note the **Client ID** and
    **Client Secret**.
 
-4. **Register your app with Tesla** (one-time curl; use your region's
-   host, `na` or `eu`):
+4. **Teslaris**: menu bar icon → Settings… → paste Client ID, Client
+   Secret and your key domain, pick your region, then click **Register
+   App with Tesla** — the app performs the one-time partner registration
+   for you. Finally **Save & Sign in with Tesla…** — your browser opens
+   Tesla's login, and you're done.
 
-   ```bash
-   TOKEN=$(curl -s https://auth.tesla.com/oauth2/v3/token \
-     -d grant_type=client_credentials -d client_id=YOUR_CLIENT_ID \
-     -d client_secret=YOUR_CLIENT_SECRET \
-     -d scope=openid \
-     -d audience=https://fleet-api.prd.eu.vn.cloud.tesla.com | jq -r .access_token)
-   curl -s -X POST https://fleet-api.prd.eu.vn.cloud.tesla.com/api/1/partner_accounts \
-     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -d '{"domain": "YOUR-DOMAIN"}'
-   ```
-
-5. **Teslaris**: menu bar icon → Settings… → paste Client ID and Client
-   Secret, pick your region, click **Save & Sign in with Tesla…** — your
-   browser opens Tesla's login, and you're done.
+The full guide with copy-paste blocks lives at
+[simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
 
 ## Try it without a Tesla
 

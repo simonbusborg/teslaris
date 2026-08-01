@@ -103,9 +103,13 @@ final class StatusItemController {
                 menu.addItem(item)
             }
 
-            // Identity
+            // Identity: model first, the owner's name for the car below it.
+            let model = data.vin.flatMap { CarImage.modelName(vin: $0) }
+            if let model {
+                menu.addItem(rowItem("Tesla \(model)", bold: true))
+            }
             if let name = data.vehicleName, !name.isEmpty {
-                menu.addItem(rowItem(name, bold: true))
+                menu.addItem(rowItem(name, bold: model == nil))
             }
             if let vin = data.vin, !vin.isEmpty {
                 menu.addItem(kvItem("VIN", vin, copyable: true))

@@ -105,6 +105,50 @@ final class TeslaFleetAPI: VehicleDataSource {
         ])
     }
 
+    /// One-time partner-account registration with Tesla — replaces the
+    /// curl step from the old setup guide. Uses a client_credentials
+    /// token (the developer app itself, not the user session), so it
+    /// works before the first sign-in. `domain` is where the public key
+    /// is hosted (…/.well-known/appspecific/com.tesla.3p.public-key.pem).
+    func registerPartnerAccount(domain: String) async throws {
+        let clientId = Preferences.clientId
+        guard !clientId.isEmpty,
+              let secret = try? Keychain.readClientSecret(), !secret.isEmpty
+        else { throw TeslarisError.notConfigured }
+
+        var request = URLRequest(url: URL(string: tokenEndpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Self.formEncode([
+            "grant_type": "client_credentials",
+            "client_id": clientId,
+            "client_secret": secret,
+            "scope": "openid",
+            "audience": Preferences.region.apiBase
+        ]).data(using: .utf8)
+        let (data, response) = try await session.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let token = json["access_token"] as? String
+        else {
+            throw TeslarisError.authenticationFailed(
+                "couldn't get a partner token — check Client ID and Secret")
+        }
+
+        var registration = URLRequest(url: URL(string: "\(apiBase)/api/1/partner_accounts")!)
+        registration.httpMethod = "POST"
+        registration.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        registration.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        registration.httpBody = try JSONSerialization.data(withJSONObject: ["domain": domain])
+        let (body, regResponse) = try await session.data(for: registration)
+        let status = (regResponse as? HTTPURLResponse)?.statusCode ?? -1
+        guard (200..<300).contains(status) else {
+            let text = String(data: body, encoding: .utf8) ?? ""
+            debugLog("partner_accounts \(status): \(text.prefix(300))")
+            throw TeslarisError.http("registration failed (\(status)) — is the public key reachable at https://\(domain)/.well-known/appspecific/com.tesla.3p.public-key.pem ?")
+        }
+    }
+
     private func refreshTokenIfNeeded() async throws {
         if let expiry = tokenExpiry, accessToken != nil,
            expiry.timeIntervalSinceNow > 60 { return }
@@ -256,7 +300,8 @@ final class TeslaFleetAPI: VehicleDataSource {
         vehicles = list.compactMap { entry in
             guard let vin = entry["vin"] as? String else { return nil }
             let name = (entry["display_name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-            return VehicleSummary(vin: vin, title: name ?? "Tesla")
+            let model = CarImage.modelName(vin: vin).map { "Tesla \($0)" }
+            return VehicleSummary(vin: vin, title: name ?? model ?? "Tesla")
         }
     }
 
