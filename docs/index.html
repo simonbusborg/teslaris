@@ -65,8 +65,13 @@
   header .sub { margin: 14px auto 0; font-size: 17px; color: var(--text-gray); max-width: 560px; }
   .cta { margin-top: 28px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
   header .fineprint { margin-top: 18px; font-size: 12px; color: var(--text-faint); }
-  .hero-car { display: block; width: min(720px, 92%); margin: 12px auto 0; }
-  header .caption { font-size: 12px; color: var(--text-faint); padding-bottom: 56px; }
+  /* The compositor render letterboxes the car in transparent space —
+     crop to the middle band so the layout doesn't inherit the padding. */
+  .hero-car {
+    display: block; width: min(720px, 92%); margin: 20px auto 0;
+    aspect-ratio: 720 / 270; object-fit: cover; object-position: center 45%;
+  }
+  header .caption { font-size: 12px; color: var(--text-faint); padding: 8px 32px 56px; }
 
   /* ---- sections ---- */
   section { padding: 88px 0; }
@@ -96,12 +101,15 @@
   .dark-section .lede { color: var(--dark-text-gray); }
   .dark-grid { display: flex; gap: 72px; align-items: flex-start; flex-wrap: wrap; }
   .menu-card {
-    flex: 0 0 330px; background: #23262c;
+    flex: 0 1 330px; max-width: 100%; background: #23262c;
     border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
     padding: 10px 0; font-size: 13.5px;
     box-shadow: 0 24px 70px rgba(0,0,0,0.5);
   }
-  .menu-card img.car { width: 290px; display: block; margin: 2px auto 6px; }
+  .menu-card img.car {
+    width: min(290px, 94%); display: block; margin: 4px auto 10px;
+    aspect-ratio: 720 / 300; object-fit: cover; object-position: center 45%;
+  }
   .mrow { display: flex; justify-content: space-between; padding: 3px 16px; }
   .mrow .k { color: var(--dark-text-gray); }
   .mrow .v { font-variant-numeric: tabular-nums; }
@@ -176,6 +184,9 @@
     .step { flex-direction: column; gap: 8px; }
     .stat { border-right: 0; padding-right: 0; margin: 0 0 24px; flex: 1 1 100%; }
     nav .links a:not(.keep) { display: none; }
+    .dark-grid { gap: 48px; }
+    .menu-card { margin: 0 auto; }
+    header .caption { padding-top: 0; }
   }
 </style>
 </head>
