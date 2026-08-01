@@ -76,6 +76,7 @@ final class CarImageLoader {
                 self.onLoad?()
             }
         }.resume()
+        return nil
     }
 }
 
