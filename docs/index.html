@@ -211,7 +211,9 @@
 
   @media (max-width: 720px) {
     .step { flex-direction: column; gap: 8px; }
-    .stat { border-right: 0; padding-right: 0; margin: 0 0 24px; flex: 1 1 100%; }
+    /* Stacked: no vertical rules, and no side padding — an asymmetric
+       inset would shift the centered text off the page's centre line. */
+    .stat { border-right: 0; padding: 4px 0; margin: 0 0 24px; flex: 1 1 100%; }
     nav .links a:not(.keep) { display: none; }
     .dark-grid { gap: 48px; }
     .menu-card { margin: 0 auto; }
