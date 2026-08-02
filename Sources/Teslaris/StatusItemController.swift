@@ -97,7 +97,9 @@ final class StatusItemController {
         let menu = NSMenu()
 
         if let data {
-            if let vin = data.vin, let image = carImages.image(for: vin) {
+            if let vin = data.vin,
+               let image = carImages.image(for: vin, exteriorColor: data.exteriorColor,
+                                           wheelType: data.wheelType) {
                 let item = NSMenuItem()
                 item.view = CarImageRowView(image: image)
                 menu.addItem(item)
@@ -157,6 +159,40 @@ final class StatusItemController {
                                     "\(Self.shortDuration(minutes: minutes)) · \(timeFormatter.string(from: fullAt))"))
             }
 
+            // Cabin & security — only rows the API actually reported, so
+            // thin fixtures and old firmware simply show nothing here.
+            var cabin: [NSMenuItem] = []
+            if let inside = data.insideTempC {
+                var value = Self.temperature(celsius: inside, unit: data.temperatureUnit)
+                if let outside = data.outsideTempC {
+                    value += " in · \(Self.temperature(celsius: outside, unit: data.temperatureUnit)) out"
+                }
+                cabin.append(kvItem("Temperature", value))
+            }
+            if data.isPreconditioning == true {
+                cabin.append(kvItem("Climate", "Preconditioning"))
+            } else if data.isClimateOn == true {
+                cabin.append(kvItem("Climate", "On"))
+            }
+            if let locked = data.locked {
+                cabin.append(kvItem("Doors", locked ? "Locked" : "Unlocked",
+                                    valueWarning: !locked))
+            }
+            if data.sentryMode == true {
+                cabin.append(kvItem("Sentry Mode", "On"))
+            }
+            if let open = Self.openSummary(for: data) {
+                cabin.append(rowItem(open, warning: true))
+            }
+            if let label = Self.softwareUpdateLabel(status: data.softwareUpdateStatus,
+                                                    version: data.softwareUpdateVersion) {
+                cabin.append(kvItem("Software", label))
+            }
+            if !cabin.isEmpty {
+                menu.addItem(.separator())
+                cabin.forEach(menu.addItem)
+            }
+
             if let km = data.odometerKm {
                 menu.addItem(.separator())
                 menu.addItem(kvItem("Odometer", Self.distance(km: km, grouped: true)))
@@ -170,13 +206,14 @@ final class StatusItemController {
             let credits = DemoVehicleSource.enabled ? 1_240 : UsageMeter.monthlyCount
             if credits > 0 {
                 let allowance = UsageMeter.monthlyAllowance
-                menu.addItem(kvItem("Credits used",
-                                    "\(Self.grouped(credits)) of \(Self.grouped(allowance)) · resets monthly"))
+                menu.addItem(kvItem("Credits",
+                                    "\(Self.grouped(credits)) of \(Self.grouped(allowance))"))
                 let fraction = min(Double(credits) / Double(allowance), 1)
                 let barItem = NSMenuItem()
                 barItem.view = BatteryBarView(fraction: fraction,
                                               color: Self.creditColor(fraction: fraction))
                 menu.addItem(barItem)
+                menu.addItem(Self.infoItem("Credits reset monthly"))
                 if credits >= UsageMeter.brakeThreshold {
                     menu.addItem(rowItem("Updates slowed until credits reset"))
                 }
@@ -264,6 +301,38 @@ final class StatusItemController {
         case "NoPower": return "Charger has no power"
         case "Starting": return "Starting charge"
         default: return state
+        }
+    }
+
+    /// "21°C" — or "70°F" when the car itself is set to Fahrenheit
+    /// (gui_settings), so the menu always matches the car's screen.
+    static func temperature(celsius: Double, unit: String?) -> String {
+        if unit == "F" { return "\(Int((celsius * 9 / 5 + 32).rounded()))°F" }
+        return "\(Int(celsius.rounded()))°C"
+    }
+
+    /// "2 windows, trunk open" — nil when everything is shut (or unreported).
+    static func openSummary(for data: VehicleData) -> String? {
+        var parts: [String] = []
+        if let w = data.openWindows, w > 0 { parts.append(w == 1 ? "a window" : "\(w) windows") }
+        if let d = data.openDoors, d > 0 { parts.append(d == 1 ? "a door" : "\(d) doors") }
+        if data.frunkOpen == true { parts.append("frunk") }
+        if data.trunkOpen == true { parts.append("trunk") }
+        guard !parts.isEmpty else { return nil }
+        let summary = parts.joined(separator: ", ") + " open"
+        return summary.prefix(1).uppercased() + summary.dropFirst()
+    }
+
+    /// vehicle_state.software_update → menu label; nil when idle.
+    static func softwareUpdateLabel(status: String?, version: String?) -> String? {
+        guard let status, !status.isEmpty else { return nil }
+        let v = version.map { " \($0)" } ?? ""
+        switch status {
+        case "available": return "Update\(v) available"
+        case "scheduled": return "Update\(v) scheduled"
+        case "downloading", "downloading_wifi_wait": return "Update\(v) downloading"
+        case "installing": return "Update\(v) installing"
+        default: return "Update\(v) — \(status)"
         }
     }
 
