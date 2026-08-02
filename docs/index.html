@@ -30,11 +30,20 @@
   .wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
   .narrow { max-width: 760px; }
 
-  /* ---- nav ---- */
+  /* ---- nav ----
+     Smoked glass that inverts with the section behind it, the way
+     tesla.com's header does: dark text over light content, white text
+     over the dark section. One fixed tint can't stay legible on both. */
   nav {
     position: sticky; top: 0; z-index: 10;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(16px);
+    color: var(--text);
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  nav.over-dark {
+    background: rgba(23, 26, 32, 0.6);
+    color: #fff;
   }
   nav .wrap { display: flex; align-items: center; height: 56px; }
   .wordmark {
@@ -46,7 +55,8 @@
     font-size: 14px; font-weight: 500; text-decoration: none;
     padding: 6px 14px; border-radius: 4px;
   }
-  nav .links a:hover { background: rgba(23, 26, 32, 0.05); }
+  nav .links a:hover { background: rgba(23, 26, 32, 0.06); }
+  nav.over-dark .links a:hover { background: rgba(255, 255, 255, 0.14); }
 
   /* ---- buttons ---- */
   .btn {
@@ -98,7 +108,7 @@
   .card code { font-family: var(--mono); font-size: 0.85em; background: rgba(23,26,32,0.07); padding: 1px 5px; border-radius: 3px; }
 
   /* ---- dark menu/specs section ---- */
-  .dark-section { background: var(--dark); color: #fff; }
+  .dark-section { background: #000; color: #fff; }
   .dark-section h2 { color: #fff; }
   .dark-section .lede { color: var(--dark-text-gray); }
   .dark-grid { display: flex; gap: 72px; align-items: flex-start; flex-wrap: wrap; }
@@ -211,7 +221,7 @@
 </head>
 <body>
 
-<nav>
+<nav id="siteNav">
   <div class="wrap">
     <a class="wordmark" href="#">Teslaris</a>
     <div class="links">
@@ -495,6 +505,19 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
 </footer>
 
 <script>
+  // Invert the nav while the dark section sits behind it — tesla.com
+  // flips its header the same way rather than fixing one tint.
+  const siteNav = document.getElementById('siteNav');
+  const darkSection = document.querySelector('.dark-section');
+  const syncNav = () => {
+    const box = darkSection.getBoundingClientRect();
+    const navHeight = siteNav.offsetHeight;
+    siteNav.classList.toggle('over-dark', box.top <= navHeight && box.bottom > 0);
+  };
+  window.addEventListener('scroll', syncNav, {passive: true});
+  window.addEventListener('resize', syncNav);
+  syncNav();
+
   // A different Tesla each visit, like the Polaris site does with its
   // Polestars. Same verified option sets the app uses — the compositor
   // errors unless trim, paint, wheels and interior are all present.
