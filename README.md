@@ -62,7 +62,10 @@ You need: a Tesla account with a vehicle, and somewhere to host one small
 public file (GitHub Pages works — you already have GitHub).
 
 1. **Generate a key pair** (Tesla requires registering a public key even
-   for read-only apps):
+   for read-only apps). Easiest: the
+   [setup guide](https://simonbusborg.github.io/teslaris/#setup) generates
+   it in your browser — locally, nothing is sent anywhere — and prefills
+   the GitHub commit for step 2. Or in Terminal:
 
    ```bash
    openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
