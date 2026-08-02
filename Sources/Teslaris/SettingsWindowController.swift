@@ -84,8 +84,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guideLink.lineBreakMode = .byWordWrapping
         guideLink.preferredMaxLayoutWidth = 270
 
+        let generateKeysButton = NSButton(title: "Generate Key Pair…",
+                                         target: self, action: #selector(generateKeysAction))
         let registerButton = NSButton(title: "Register App with Tesla",
                                       target: self, action: #selector(registerAction))
+        let keyRow = NSStackView(views: [generateKeysButton, registerButton])
+        keyRow.orientation = .horizontal
+        keyRow.spacing = 8
 
         let grid = NSGridView(views: [
             [label("Client ID:"), clientIdField],
@@ -93,7 +98,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             [label("Key domain:"), domainField],
             [label("Region:"), regionPopup],
             [NSGridCell.emptyContentView, guideLink],
-            [NSGridCell.emptyContentView, registerButton],
+            [NSGridCell.emptyContentView, keyRow],
             [label("Show in bar:"), displayPopup],
             [label("Distances:"), unitPopup],
             [NSGridCell.emptyContentView, launchCheckbox],
@@ -105,8 +110,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         grid.columnSpacing = 10
         grid.rowAlignment = .firstBaseline
         grid.column(at: 0).xPlacement = .trailing
-        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox, registerButton,
-                        notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] {
+        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox, keyRow,
+                        notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
         grid.row(at: 4).topPadding = -6
@@ -206,6 +211,50 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guard persist() else { return }
         window?.orderOut(nil)
         onSave()
+    }
+
+    /// Generates the Tesla key pair on this Mac — no Terminal, no
+    /// openssl. Writes both PEMs to a folder the user picks and reveals
+    /// the public one, which is the file that has to be hosted.
+    @objc private func generateKeysAction() {
+        let panel = NSOpenPanel()
+        panel.message = "Choose where to save your Tesla key pair"
+        panel.prompt = "Save Here"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory,
+                                                      in: .userDomainMask).first
+        guard panel.runModal() == .OK, let directory = panel.url else { return }
+
+        do {
+            let keys = KeyPair.generate()
+            let publicURL = try KeyPair.write(keys, to: directory)
+            NSWorkspace.shared.activateFileViewerSelecting([publicURL])
+
+            let alert = NSAlert()
+            alert.messageText = "Key pair created"
+            alert.informativeText = """
+                Host \(KeyPair.publicKeyFilename) so it is reachable at
+
+                https://YOUR-DOMAIN/\(KeyPair.wellKnownPath)
+
+                then enter that domain above and click Register App with \
+                Tesla. Keep \(KeyPair.privateKeyFilename) safe — Teslaris \
+                never needs it.
+                """
+            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "Open Setup Guide")
+            if alert.runModal() == .alertSecondButtonReturn,
+               let url = URL(string: "https://simonbusborg.github.io/teslaris/#setup") {
+                NSWorkspace.shared.open(url)
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Couldn't save the key pair"
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+        }
     }
 
     /// One-time partner registration, run by the app instead of the old
