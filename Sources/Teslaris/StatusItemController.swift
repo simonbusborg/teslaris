@@ -359,10 +359,11 @@ final class StatusItemController {
         return .controlAccentColor
     }
 
-    /// Credit gauge: calm accent until usage gets high — orange from
-    /// 70%, matching where the polling brake lives (~84%).
+    /// Credit gauge: neutral gray so color stays reserved for the car
+    /// (and can't collide with the user's accent) — orange from 70%,
+    /// matching where the polling brake lives (~84%).
     static func creditColor(fraction: Double) -> NSColor {
-        fraction >= 0.7 ? .systemOrange : .controlAccentColor
+        fraction >= 0.7 ? .systemOrange : .systemGray
     }
 
     private static func grouped(_ value: Int) -> String {
