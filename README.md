@@ -13,7 +13,7 @@ Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 (the same app for Polestar). Docs and setup guide:
 [simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
 
-**[Download the latest release](https://github.com/simonbusborg/teslaris/releases/latest)**
+**[Download Teslaris.dmg](https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg)** · [All releases](https://github.com/simonbusborg/teslaris/releases)
 
 ## Install
 
