@@ -68,7 +68,7 @@
   /* The compositor render letterboxes the car in transparent space —
      crop to the middle band so the layout doesn't inherit the padding. */
   .hero-car {
-    display: block; width: min(720px, 92%); margin: 20px auto 0;
+    display: block; width: min(1080px, 94%); margin: 28px auto 0;
     aspect-ratio: 720 / 270; object-fit: cover; object-position: center 45%;
   }
   header .caption { font-size: 12px; color: var(--text-faint); padding: 8px 32px 56px; }
@@ -131,6 +131,9 @@
 
   /* ---- setup ---- */
   .setup-section { background: var(--card); }
+  /* A centered column: the step content is narrow, so a full-width
+     container leaves all the spare width on the right. */
+  .setup-section .wrap { max-width: 880px; }
   .step { display: flex; gap: 32px; padding: 36px 0; border-top: 1px solid var(--line); }
   .steps .step:first-child { border-top: 0; padding-top: 0; }
   .stepnum { flex: 0 0 auto; font-size: 15px; font-weight: 600; color: var(--text-faint); padding-top: 3px; }
@@ -217,7 +220,7 @@
     <p class="fineprint">Free and open source · macOS 13+ · Not affiliated with Tesla</p>
   </div>
   <img class="hero-car" alt="Side view of a Tesla Model 3"
-    src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1">
+    src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=1441&amp;bkba_opt=1">
   <p class="caption">Render from Tesla's configurator — the same image the app shows for your car.</p>
 </header>
 
@@ -436,20 +439,20 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   // A different Tesla each visit, like the Polaris site does with its
   // Polestars. Same verified option sets the app uses — the compositor
   // errors unless trim, paint, wheels and interior are all present.
-  const compositor = (model, options) =>
+  const compositor = (model, options, size) =>
     `https://static-assets.tesla.com/configurator/compositor?model=${model}`
-    + `&options=${options}&view=STUD_SIDE&size=800&bkba_opt=1`;
+    + `&options=${options}&view=STUD_SIDE&size=${size}&bkba_opt=1`;
   const models = [
-    {name: 'Tesla Model S', url: compositor('ms', '%24MTS14,%24PPSW,%24WS90,%24IBE00')},
-    {name: 'Tesla Model 3', url: compositor('m3', '%24MT356,%24PPSW,%24W38A,%24IPB3')},
-    {name: 'Tesla Model X', url: compositor('mx', '%24MTX14,%24PPSW,%24WX00,%24IBE00')},
-    {name: 'Tesla Model Y', url: compositor('my', '%24MTY13,%24PPSW,%24WY19B,%24INPB0')},
+    {name: 'Tesla Model S', code: 'ms', options: '%24MTS14,%24PPSW,%24WS90,%24IBE00'},
+    {name: 'Tesla Model 3', code: 'm3', options: '%24MT356,%24PPSW,%24W38A,%24IPB3'},
+    {name: 'Tesla Model X', code: 'mx', options: '%24MTX14,%24PPSW,%24WX00,%24IBE00'},
+    {name: 'Tesla Model Y', code: 'my', options: '%24MTY13,%24PPSW,%24WY19B,%24INPB0'},
   ];
   const pick = models[Math.floor(Math.random() * models.length)];
   const hero = document.querySelector('.hero-car');
-  hero.src = pick.url;
+  hero.src = compositor(pick.code, pick.options, 1441);
   hero.alt = `Side view of a ${pick.name}`;
-  document.querySelector('.menu-card img.car').src = pick.url;
+  document.querySelector('.menu-card img.car').src = compositor(pick.code, pick.options, 800);
   document.querySelector('.menu-card .mrow.title span').textContent = pick.name;
 
   for (const btn of document.querySelectorAll('pre .copy')) {
