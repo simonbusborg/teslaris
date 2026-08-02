@@ -164,12 +164,22 @@ final class StatusItemController {
 
             menu.addItem(.separator())
             menu.addItem(kvItem("Updated", timeFormatter.string(from: data.lastUpdated)))
-            // Demo mode shows a representative value — the real meter
-            // only counts actual billed requests.
-            let requests = DemoVehicleSource.enabled ? 172 : UsageMeter.monthlyCount
-            if requests > 0 {
-                menu.addItem(kvItem("API this month",
-                                    "\(requests) requests · ≈\(UsageMeter.estimatedCost(requests: requests))"))
+            // Fleet API usage as a credit gauge — deliberately no money
+            // in the UI. Demo mode shows a representative value; the
+            // real meter only counts actual billed requests.
+            let credits = DemoVehicleSource.enabled ? 1_240 : UsageMeter.monthlyCount
+            if credits > 0 {
+                let allowance = UsageMeter.monthlyAllowance
+                menu.addItem(kvItem("Credits used",
+                                    "\(Self.grouped(credits)) of \(Self.grouped(allowance)) · resets monthly"))
+                let fraction = min(Double(credits) / Double(allowance), 1)
+                let barItem = NSMenuItem()
+                barItem.view = BatteryBarView(fraction: fraction,
+                                              color: Self.creditColor(fraction: fraction))
+                menu.addItem(barItem)
+                if credits >= UsageMeter.brakeThreshold {
+                    menu.addItem(rowItem("Updates slowed until credits reset"))
+                }
             }
             if data.isAsleep {
                 menu.addItem(rowItem("Car is asleep — showing last known data", warning: false))
@@ -278,6 +288,18 @@ final class StatusItemController {
         if charging { return .systemGreen }
         if percentage <= 20 { return .systemOrange }
         return .controlAccentColor
+    }
+
+    /// Credit gauge: calm accent until usage gets high — orange from
+    /// 70%, matching where the polling brake lives (~84%).
+    static func creditColor(fraction: Double) -> NSColor {
+        fraction >= 0.7 ? .systemOrange : .controlAccentColor
+    }
+
+    private static func grouped(_ value: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }
 

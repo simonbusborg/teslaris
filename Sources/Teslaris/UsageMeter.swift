@@ -3,14 +3,21 @@
 //  Teslaris
 //
 //  Counts billed Fleet API data requests per calendar month — for the
-//  menu's transparency row and the polling brake. ~$0.002 per request
-//  at Tesla's published rate; the authoritative ledger is Tesla's
-//  developer dashboard, this is a local estimate.
+//  menu's credit gauge and the polling brake. The UI deliberately shows
+//  credits, never money: Tesla's $10/month free credit covers about
+//  5,000 data requests, so one request = one credit out of 5,000. The
+//  authoritative ledger is Tesla's developer dashboard; this is a local
+//  estimate.
 //
 
 import Foundation
 
 enum UsageMeter {
+    /// What the free monthly credit covers, in requests.
+    static let monthlyAllowance = 5_000
+    /// The polling brake engages here (~84% of the allowance).
+    static let brakeThreshold = 4_200
+
     private static let countKey = "api_request_count"
     private static let monthKey = "api_request_month"
 
@@ -36,10 +43,5 @@ enum UsageMeter {
         let defaults = UserDefaults.standard
         guard defaults.string(forKey: monthKey) == currentMonth else { return 0 }
         return defaults.integer(forKey: countKey)
-    }
-
-    /// "$0.34" — at Tesla's ~$1 per 500 data requests.
-    static func estimatedCost(requests: Int) -> String {
-        String(format: "$%.2f", Double(requests) * 0.002)
     }
 }

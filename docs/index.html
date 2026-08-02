@@ -459,11 +459,12 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
     <details>
       <summary>Can the API costs run away?</summary>
       <p>No — four layers prevent it. Polling adapts to state (15 min parked, 5→1 min
-      while charging, 30 min asleep); the menu shows the month's request count and
-      estimated cost; past roughly $8.40 estimated, Teslaris stretches all polling to
-      30 minutes for the rest of the month; and if you never add a payment method to
-      your Tesla developer account, Tesla simply suspends API access at the credit
-      limit instead of charging you. Worst case is a paused app — never a bill.</p>
+      while charging, 30 min asleep); the menu shows a credit gauge — the free monthly
+      credit covers ~5,000 requests, shown on a progress bar that resets monthly; past
+      ~84% of the credits, Teslaris stretches all polling to 30 minutes until they
+      reset; and if you never add a payment method to your Tesla developer account,
+      Tesla simply suspends API access at the credit limit instead of charging you.
+      Worst case is a paused app — never a bill.</p>
     </details>
     <details>
       <summary>Which cars are supported?</summary>

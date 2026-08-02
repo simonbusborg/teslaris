@@ -139,10 +139,11 @@ Teslaris is built so spending **cannot** rocket:
   tightening to 1 min only for the final stretch — so an overnight
   charge costs ~$0.20, not ~$1. A sleeping car is polled every 30 min
   and never woken.
-- **A visible meter.** The menu shows the month's request count and
-  estimated cost (~$0.002 per request).
-- **A brake.** Past ~$8.40 estimated, all polling stretches to 30 min
-  for the rest of the month.
+- **A visible gauge.** The menu shows credits used on a progress bar —
+  the free monthly credit covers ~5,000 requests, so one request is one
+  credit. It resets monthly, and no money appears in the app.
+- **A brake.** Past ~84% of the monthly credits, all polling stretches
+  to 30 min until they reset, and the menu says so.
 - **A hard ceiling.** Don't add a payment method to your Tesla
   developer account: Tesla then *suspends* API access at the credit
   limit instead of billing you. Worst case is a paused app — never a

@@ -196,7 +196,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 interval = minutes > 60 ? 300 : (minutes > 15 ? 120 : 60)
             }
         }
-        if monthlyRequests > 4200 {   // ≈ $8.40 of the $10 credit
+        if monthlyRequests >= UsageMeter.brakeThreshold {
             interval = max(interval * 2, 1800)
         }
         return interval

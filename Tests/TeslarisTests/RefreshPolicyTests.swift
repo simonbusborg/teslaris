@@ -36,9 +36,14 @@ final class RefreshPolicyTests: XCTestCase {
 
     func testBudgetBrake() {
         XCTAssertEqual(AppDelegate.refreshInterval(
-            for: vehicle(state: "Disconnected"), monthlyRequests: 4201), 1800)
+            for: vehicle(state: "Disconnected"),
+            monthlyRequests: UsageMeter.brakeThreshold), 1800)
         XCTAssertEqual(AppDelegate.refreshInterval(
-            for: vehicle(state: "Charging", minutesToFull: 5), monthlyRequests: 4201), 1800)
+            for: vehicle(state: "Charging", minutesToFull: 5),
+            monthlyRequests: UsageMeter.brakeThreshold), 1800)
+        XCTAssertEqual(AppDelegate.refreshInterval(
+            for: vehicle(state: "Disconnected"),
+            monthlyRequests: UsageMeter.brakeThreshold - 1), 900)
     }
 
     /// An overnight charge (8h) must stay around a dollar a month, not
