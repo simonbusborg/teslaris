@@ -33,10 +33,14 @@ Security → Open Anyway**. On macOS 14 and earlier, **right-click → Open
   and time-to-full — refreshed every 15 minutes when parked; while
   charging the cadence scales with time-to-full (5 min → 1 min as the
   charge finishes)
-- A side view of your car at the top of the menu, auto-detected from the
-  VIN and rendered by Tesla's configurator (free — not Fleet API traffic).
-  The default is a neutral white car of the right model; to match your
-  paint and wheels:
+- Cabin and outside temperature (in the car's own °C/°F setting),
+  door-lock and Sentry Mode status, a warning when a window, door, frunk
+  or trunk is left open, and pending software updates — all from the same
+  billed request as the charge data, so none of it costs extra
+- A side view of your car at the top of the menu, rendered by Tesla's
+  configurator (free — not Fleet API traffic). Model, paint and wheels
+  are auto-detected; combinations the renderer doesn't support fall back
+  to a neutral white car of the right model. To force exact options:
   `defaults write com.weareheavy.teslaris car_image_options '$MTY13,$PRED,$WY20P,$INPB0'`
 - Notifications when charging starts, completes, or the charger loses power
 - Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit

@@ -39,6 +39,46 @@ final class FormattingTests: XCTestCase {
         XCTAssertEqual(StatusItemController.batteryColor(percentage: 80, charging: false), .controlAccentColor)
     }
 
+    func testTemperatureFollowsCarUnit() {
+        XCTAssertEqual(StatusItemController.temperature(celsius: 21.4, unit: "C"), "21°C")
+        XCTAssertEqual(StatusItemController.temperature(celsius: 21.4, unit: nil), "21°C")
+        XCTAssertEqual(StatusItemController.temperature(celsius: 21.4, unit: "F"), "71°F")
+        XCTAssertEqual(StatusItemController.temperature(celsius: -0.4, unit: "C"), "0°C")
+    }
+
+    func testOpenSummary() {
+        var data = VehicleData(batteryPercentage: 80, rangeKm: 400, chargingState: "Disconnected",
+                               minutesToFull: nil, chargeLimitPercent: nil, chargingPowerKw: nil,
+                               vehicleName: nil, vin: nil, odometerKm: nil,
+                               isAsleep: false, lastUpdated: Date())
+        XCTAssertNil(StatusItemController.openSummary(for: data))
+
+        data.openWindows = 0; data.openDoors = 0
+        data.frunkOpen = false; data.trunkOpen = false
+        XCTAssertNil(StatusItemController.openSummary(for: data))
+
+        data.openWindows = 1
+        XCTAssertEqual(StatusItemController.openSummary(for: data), "A window open")
+
+        data.openWindows = 2; data.trunkOpen = true
+        XCTAssertEqual(StatusItemController.openSummary(for: data), "2 windows, trunk open")
+
+        data.openWindows = 0; data.openDoors = 1; data.trunkOpen = false
+        XCTAssertEqual(StatusItemController.openSummary(for: data), "A door open")
+    }
+
+    func testSoftwareUpdateLabel() {
+        XCTAssertNil(StatusItemController.softwareUpdateLabel(status: nil, version: nil))
+        XCTAssertEqual(StatusItemController.softwareUpdateLabel(status: "available",
+                                                                version: "2026.20.6"),
+                       "Update 2026.20.6 available")
+        XCTAssertEqual(StatusItemController.softwareUpdateLabel(status: "installing", version: nil),
+                       "Update installing")
+        XCTAssertEqual(StatusItemController.softwareUpdateLabel(status: "downloading_wifi_wait",
+                                                                version: "2026.20.6"),
+                       "Update 2026.20.6 downloading")
+    }
+
     func testMenuBarIcon() {
         func vehicle(state: String, battery: Double) -> VehicleData {
             VehicleData(batteryPercentage: battery, rangeKm: 200, chargingState: state,

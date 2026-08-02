@@ -26,8 +26,30 @@ struct VehicleData {
     let vin: String?
     let odometerKm: Int?
     /// True when this is cached data because the car is asleep.
-    let isAsleep: Bool
+    var isAsleep: Bool
     let lastUpdated: Date
+
+    // The fields below ride along in the same billed vehicle_data request
+    // (extra endpoint groups in the filter are free) but are absent from
+    // older fixtures and the demo timeline, hence optional with defaults.
+    var insideTempC: Double?
+    var outsideTempC: Double?
+    var isClimateOn: Bool?
+    var isPreconditioning: Bool?
+    var locked: Bool?
+    var sentryMode: Bool?
+    var openWindows: Int?
+    var openDoors: Int?
+    var frunkOpen: Bool?
+    var trunkOpen: Bool?
+    /// vehicle_state.software_update.status, nil when idle ("").
+    var softwareUpdateStatus: String?
+    var softwareUpdateVersion: String?
+    /// gui_settings.gui_temperature_units: "C" or "F" — the car's own choice.
+    var temperatureUnit: String?
+    /// vehicle_config values feeding the car image (paint and wheels).
+    var exteriorColor: String?
+    var wheelType: String?
 
     var isCharging: Bool { chargingState == "Charging" || chargingState == "Starting" }
 
@@ -41,11 +63,9 @@ struct VehicleData {
 
     /// Returns a copy flagged as stale/asleep, keeping the numbers.
     func asAsleep() -> VehicleData {
-        VehicleData(batteryPercentage: batteryPercentage, rangeKm: rangeKm,
-                    chargingState: chargingState, minutesToFull: minutesToFull,
-                    chargeLimitPercent: chargeLimitPercent, chargingPowerKw: chargingPowerKw,
-                    vehicleName: vehicleName, vin: vin, odometerKm: odometerKm,
-                    isAsleep: true, lastUpdated: lastUpdated)
+        var copy = self
+        copy.isAsleep = true
+        return copy
     }
 }
 

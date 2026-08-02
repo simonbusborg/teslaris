@@ -29,7 +29,38 @@ final class FleetAPITests: XCTestCase {
       "vehicle_state": {
         "odometer": 15720.074889,
         "vehicle_name": "Nikola 2.0",
+        "locked": false,
+        "sentry_mode": true,
+        "fd_window": 1,
+        "fp_window": 0,
+        "rd_window": 1,
+        "rp_window": 0,
+        "df": 0, "pf": 0, "dr": 0, "pr": 0,
+        "ft": 0,
+        "rt": 1,
+        "software_update": {
+          "status": "available",
+          "version": "2026.20.6"
+        },
         "timestamp": 1692141038419
+      },
+      "climate_state": {
+        "inside_temp": 21.4,
+        "outside_temp": 13.6,
+        "is_climate_on": false,
+        "is_preconditioning": true,
+        "timestamp": 1692141038420
+      },
+      "gui_settings": {
+        "gui_distance_units": "km/hr",
+        "gui_temperature_units": "C",
+        "timestamp": 1692141038420
+      },
+      "vehicle_config": {
+        "car_type": "model3",
+        "exterior_color": "DeepBlue",
+        "wheel_type": "Photon18",
+        "timestamp": 1692141038420
       }
     }
     """
@@ -58,12 +89,52 @@ final class FleetAPITests: XCTestCase {
         XCTAssertEqual(parsed.lastUpdated, now)
     }
 
+    func testParseCabinAndConfig() {
+        let parsed = TeslaFleetAPI.parseVehicleData(fixture(), now: Date())
+
+        XCTAssertEqual(parsed.insideTempC, 21.4)
+        XCTAssertEqual(parsed.outsideTempC, 13.6)
+        XCTAssertEqual(parsed.isClimateOn, false)
+        XCTAssertEqual(parsed.isPreconditioning, true)
+        XCTAssertEqual(parsed.locked, false)
+        XCTAssertEqual(parsed.sentryMode, true)
+        XCTAssertEqual(parsed.openWindows, 2)
+        XCTAssertEqual(parsed.openDoors, 0)
+        XCTAssertEqual(parsed.frunkOpen, false)
+        XCTAssertEqual(parsed.trunkOpen, true)
+        XCTAssertEqual(parsed.softwareUpdateStatus, "available")
+        XCTAssertEqual(parsed.softwareUpdateVersion, "2026.20.6")
+        XCTAssertEqual(parsed.temperatureUnit, "C")
+        XCTAssertEqual(parsed.exteriorColor, "DeepBlue")
+        XCTAssertEqual(parsed.wheelType, "Photon18")
+    }
+
+    func testIdleSoftwareUpdateStatusBecomesNil() {
+        var json = fixture()
+        var state = json["vehicle_state"] as! [String: Any]
+        state["software_update"] = ["status": "", "version": ""]
+        json["vehicle_state"] = state
+        let parsed = TeslaFleetAPI.parseVehicleData(json, now: Date())
+        XCTAssertNil(parsed.softwareUpdateStatus)
+        XCTAssertNil(parsed.softwareUpdateVersion)
+    }
+
     func testParseHandlesMissingSections() {
         let parsed = TeslaFleetAPI.parseVehicleData(["vin": "X"], now: Date())
         XCTAssertEqual(parsed.batteryPercentage, 0)
         XCTAssertEqual(parsed.chargingState, "Unknown")
         XCTAssertNil(parsed.minutesToFull)
         XCTAssertNil(parsed.isPluggedIn)
+        // Absent sections must stay nil — never "0 windows open" invented
+        // from a fixture that simply didn't include the fields.
+        XCTAssertNil(parsed.insideTempC)
+        XCTAssertNil(parsed.locked)
+        XCTAssertNil(parsed.openWindows)
+        XCTAssertNil(parsed.openDoors)
+        XCTAssertNil(parsed.frunkOpen)
+        XCTAssertNil(parsed.softwareUpdateStatus)
+        XCTAssertNil(parsed.exteriorColor)
+        XCTAssertNil(parsed.wheelType)
     }
 
     func testZeroMinutesToFullBecomesNil() {
@@ -97,6 +168,8 @@ final class FleetAPITests: XCTestCase {
         XCTAssertTrue(asleep.isAsleep)
         XCTAssertEqual(asleep.batteryPercentage, 42)
         XCTAssertEqual(asleep.rangeKm, 216)
+        XCTAssertEqual(asleep.insideTempC, 21.4)
+        XCTAssertEqual(asleep.exteriorColor, "DeepBlue")
     }
 
     // MARK: - OAuth callback parsing

@@ -5,9 +5,10 @@
 //  Side-view render of the car for the top of the menu, from Tesla's
 //  configurator compositor (static-assets.tesla.com). Unofficial but
 //  Tesla-hosted, unauthenticated, and free — a static asset, not billed
-//  Fleet API traffic. The model is derived from the VIN; paint and trim
-//  are fixed neutral defaults (the right *model* matters, the color
-//  doesn't). Any failure just means no image row — nothing else breaks.
+//  Fleet API traffic. The model is derived from the VIN; paint and wheels
+//  come from vehicle_config when the API reports a combination the
+//  compositor is verified to accept, otherwise neutral defaults. Any
+//  failure just means no image row — nothing else breaks.
 //
 
 import AppKit
@@ -42,51 +43,100 @@ enum CarImage {
         }
     }
 
-    /// Verified-working option sets, already percent-encoded ($ → %24).
-    /// The compositor errors (404/412) unless all four groups are present:
-    /// trim, paint, wheels, interior.
-    private static let defaultOptions = [
-        "ms": "%24MTS14,%24PPSW,%24WS90,%24IBE00",
-        "m3": "%24MT356,%24PPSW,%24W38A,%24IPB3",
-        "mx": "%24MTX14,%24PPSW,%24WX00,%24IBE00",
-        "my": "%24MTY13,%24PPSW,%24WY19B,%24INPB0",
+    /// Verified-working option sets. The compositor errors (404/412)
+    /// unless all four groups are present: trim, paint, wheels, interior.
+    private static let defaultOptions: [String: (trim: String, paint: String,
+                                                 wheels: String, interior: String)] = [
+        "ms": ("MTS14", "PPSW", "WS90", "IBE00"),
+        "m3": ("MT356", "PPSW", "W38A", "IPB3"),
+        "mx": ("MTX14", "PPSW", "WX00", "IBE00"),
+        "my": ("MTY13", "PPSW", "WY19B", "INPB0"),
     ]
 
-    /// Escape hatch to match your actual car without any UI:
+    /// vehicle_config.exterior_color → compositor paint code, per model.
+    /// The compositor rejects (412) any code the model's trim can't take —
+    /// e.g. the m3 trim is the current Highland, which dropped
+    /// MidnightSilver/RedMulticoat — so every entry here was probed
+    /// against the live compositor. Unmapped colors keep the white default.
+    private static let paintCodes: [String: [String: String]] = {
+        var codes: [String: [String: String]] = [:]
+        for model in ["ms", "m3", "mx", "my"] {
+            codes[model] = ["PearlWhite": "PPSW", "White": "PPSW",
+                            "SolidBlack": "PBSB", "Black": "PBSB",
+                            "DeepBlue": "PPSB", "DeepBlueMetallic": "PPSB"]
+        }
+        for model in ["ms", "mx", "my"] {
+            codes[model]?["MidnightSilver"] = "PMNG"
+            codes[model]?["MidnightSilverMetallic"] = "PMNG"
+            codes[model]?["Red"] = "PPMR"
+            codes[model]?["RedMulticoat"] = "PPMR"
+        }
+        for model in ["m3", "my"] {
+            codes[model]?["UltraRed"] = "PR01"
+            codes[model]?["Quicksilver"] = "PN00"
+            codes[model]?["StealthGrey"] = "PN01"
+        }
+        codes["my"]?["MidnightCherryRed"] = "PR00"
+        return codes
+    }()
+
+    /// vehicle_config.wheel_type → compositor wheel code, likewise
+    /// verified per model. Unmapped wheels keep the model's default.
+    private static let wheelCodes: [String: [String: String]] = [
+        "ms": ["Tempest19": "WS90", "Arachnid21": "WS10"],
+        "m3": ["Photon18": "W38A", "Nova19": "W39S"],
+        "mx": ["Cyberstream20": "WX00", "Turbine22": "WX20"],
+        "my": ["Gemini19": "WY19B", "Induction20": "WY20P"],
+    ]
+
+    /// Escape hatch to force exact options without any UI (wins over the
+    /// auto-detected paint and wheels):
     ///   defaults write com.weareheavy.teslaris car_image_options '$MTY13,$PRED,$WY20P,$INPB0'
-    static func url(vin: String) -> URL? {
+    static func url(vin: String, exteriorColor: String? = nil,
+                    wheelType: String? = nil) -> URL? {
         guard let model = modelCode(vin: vin) else { return nil }
-        var options = defaultOptions[model] ?? ""
+        let options: String
         if let custom = UserDefaults.standard.string(forKey: "car_image_options"),
            !custom.isEmpty {
             options = custom.replacingOccurrences(of: "$", with: "%24")
+        } else if let d = defaultOptions[model] {
+            let paint = exteriorColor.flatMap { paintCodes[model]?[$0] } ?? d.paint
+            let wheels = wheelType.flatMap { wheelCodes[model]?[$0] } ?? d.wheels
+            options = "%24\(d.trim),%24\(paint),%24\(wheels),%24\(d.interior)"
+        } else {
+            return nil
         }
-        guard !options.isEmpty else { return nil }
         return URL(string: "https://static-assets.tesla.com/configurator/compositor"
             + "?model=\(model)&options=\(options)&view=STUD_SIDE&size=800&bkba_opt=1")
     }
 }
 
-/// Fetches and caches one image per VIN. Misses render nothing; the menu
-/// is rebuilt on every refresh anyway, so a late arrival shows up via
-/// `onLoad` re-rendering.
+/// Fetches and caches one image per compositor URL — the URL for a VIN
+/// changes once vehicle_config supplies real paint and wheels, and the
+/// fresher render then replaces the neutral default. Misses render
+/// nothing; the menu is rebuilt on every refresh anyway, so a late
+/// arrival shows up via `onLoad` re-rendering.
 final class CarImageLoader {
 
     var onLoad: (() -> Void)?
     private var cache: [String: NSImage] = [:]
     private var inflight: Set<String> = []
 
-    func image(for vin: String) -> NSImage? {
-        if let image = cache[vin] { return image }
-        guard !inflight.contains(vin), let url = CarImage.url(vin: vin) else { return nil }
-        inflight.insert(vin)
+    func image(for vin: String, exteriorColor: String? = nil,
+               wheelType: String? = nil) -> NSImage? {
+        guard let url = CarImage.url(vin: vin, exteriorColor: exteriorColor,
+                                     wheelType: wheelType) else { return nil }
+        let key = url.absoluteString
+        if let image = cache[key] { return image }
+        guard !inflight.contains(key) else { return nil }
+        inflight.insert(key)
         URLSession.shared.dataTask(with: url) { [weak self] data, response, _ in
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.inflight.remove(vin)   // a failure retries on the next render
+                self.inflight.remove(key)   // a failure retries on the next render
                 guard (response as? HTTPURLResponse)?.statusCode == 200,
                       let data, let image = NSImage(data: data) else { return }
-                self.cache[vin] = image
+                self.cache[key] = image
                 self.onLoad?()
             }
         }.resume()

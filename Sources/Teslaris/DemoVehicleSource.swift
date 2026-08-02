@@ -41,7 +41,7 @@ final class DemoVehicleSource: VehicleDataSource {
         ]
         let entry = timeline[step % timeline.count]
 
-        let data = VehicleData(
+        var data = VehicleData(
             batteryPercentage: entry.battery,
             rangeKm: Int(entry.battery * 5.2),      // ~520 km at 100%
             chargingState: entry.state,
@@ -54,6 +54,14 @@ final class DemoVehicleSource: VehicleDataSource {
             isAsleep: false,
             lastUpdated: Date()
         )
+        // Cabin details so the demo exercises every menu row; Stealth Grey
+        // on Nova wheels also shows off the auto-detected car image.
+        data.insideTempC = 21
+        data.outsideTempC = 14
+        data.locked = true
+        data.temperatureUnit = "C"
+        data.exteriorColor = "StealthGrey"
+        data.wheelType = "Nova19"
         return entry.asleep ? data.asAsleep() : data
     }
 }

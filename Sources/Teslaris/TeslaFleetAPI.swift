@@ -275,9 +275,10 @@ final class TeslaFleetAPI: VehicleDataSource {
         let targetVin = vin.isEmpty ? (vehicles.first?.vin ?? "") : vin
         guard !targetVin.isEmpty else { throw TeslarisError.parse("no vehicles on account") }
 
-        // endpoints filter keeps the payload (and the bill) small.
+        // Billing is per request, not per endpoint group — climate, config
+        // and GUI units ride along free. The filter still trims the payload.
         let url = URL(string: "\(apiBase)/api/1/vehicles/\(targetVin)/vehicle_data"
-            + "?endpoints=charge_state%3Bvehicle_state")!
+            + "?endpoints=charge_state%3Bvehicle_state%3Bclimate_state%3Bvehicle_config%3Bgui_settings")!
         let (data, response) = try await authed(url: url, token: token)
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
         if status == 408 { throw TeslarisError.vehicleAsleep }
@@ -328,7 +329,7 @@ final class TeslaFleetAPI: VehicleDataSource {
         }
 
         let minutes = charge["minutes_to_full_charge"] as? Int
-        return VehicleData(
+        var data = VehicleData(
             batteryPercentage: (charge["battery_level"] as? NSNumber)?.doubleValue ?? 0,
             rangeKm: kmFromMiles(charge["battery_range"]) ?? 0,
             chargingState: charge["charging_state"] as? String ?? "Unknown",
@@ -342,5 +343,39 @@ final class TeslaFleetAPI: VehicleDataSource {
             isAsleep: false,
             lastUpdated: now
         )
+
+        let climate = vehicle["climate_state"] as? [String: Any] ?? [:]
+        data.insideTempC = (climate["inside_temp"] as? NSNumber)?.doubleValue
+        data.outsideTempC = (climate["outside_temp"] as? NSNumber)?.doubleValue
+        data.isClimateOn = climate["is_climate_on"] as? Bool
+        data.isPreconditioning = climate["is_preconditioning"] as? Bool
+
+        data.locked = state["locked"] as? Bool
+        data.sentryMode = state["sentry_mode"] as? Bool
+        // Windows/doors report 0 for shut; any other value is open. Counts
+        // stay nil when the fields are absent (older firmware, thin fixtures).
+        func openCount(_ keys: [String]) -> Int? {
+            let values = keys.compactMap { (state[$0] as? NSNumber)?.intValue }
+            return values.isEmpty ? nil : values.filter { $0 != 0 }.count
+        }
+        data.openWindows = openCount(["fd_window", "fp_window", "rd_window", "rp_window"])
+        data.openDoors = openCount(["df", "pf", "dr", "pr"])
+        data.frunkOpen = (state["ft"] as? NSNumber).map { $0.intValue != 0 }
+        data.trunkOpen = (state["rt"] as? NSNumber).map { $0.intValue != 0 }
+        if let update = state["software_update"] as? [String: Any],
+           let status = update["status"] as? String, !status.isEmpty {
+            data.softwareUpdateStatus = status
+            data.softwareUpdateVersion = (update["version"] as? String)
+                .flatMap { $0.isEmpty ? nil : $0 }
+        }
+
+        let gui = vehicle["gui_settings"] as? [String: Any] ?? [:]
+        data.temperatureUnit = gui["gui_temperature_units"] as? String
+
+        let config = vehicle["vehicle_config"] as? [String: Any] ?? [:]
+        data.exteriorColor = config["exterior_color"] as? String
+        data.wheelType = config["wheel_type"] as? String
+
+        return data
     }
 }

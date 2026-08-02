@@ -13,6 +13,7 @@ Scenario control (curl or browser):
     /debug/scenario/idle         parked, unplugged (default)
     /debug/scenario/plugged      plugged in, waiting
     /debug/scenario/complete     charged to the limit
+    /debug/scenario/open         unlocked, a window and the trunk open
     /debug/scenario/asleep       vehicle_data returns 408
 """
 
@@ -28,6 +29,7 @@ SCENARIOS = {
     "plugged":  {"charging_state": "Stopped"},
     "charging": {"charging_state": "Charging", "charger_power": 11},
     "complete": {"charging_state": "Complete"},
+    "open":     {"charging_state": "Disconnected", "open": True},
     "asleep":   {},
 }
 
@@ -57,6 +59,37 @@ def vehicle_data():
             "vehicle_state": {
                 "odometer": 14548.55,
                 "vehicle_name": "Mock S",
+                "locked": not extra.get("open"),
+                "sentry_mode": False,
+                "fd_window": 1 if extra.get("open") else 0,
+                "fp_window": 0,
+                "rd_window": 0,
+                "rp_window": 0,
+                "df": 0, "pf": 0, "dr": 0, "pr": 0,
+                "ft": 0,
+                "rt": 1 if extra.get("open") else 0,
+                "software_update": {
+                    "status": "available" if scenario == "idle" else "",
+                    "version": "2026.20.6",
+                },
+                "timestamp": int(time.time() * 1000),
+            },
+            "climate_state": {
+                "inside_temp": 22.5,
+                "outside_temp": 14.0,
+                "is_climate_on": False,
+                "is_preconditioning": False,
+                "timestamp": int(time.time() * 1000),
+            },
+            "gui_settings": {
+                "gui_distance_units": "km/hr",
+                "gui_temperature_units": "C",
+                "timestamp": int(time.time() * 1000),
+            },
+            "vehicle_config": {
+                "car_type": "model3",
+                "exterior_color": "UltraRed",
+                "wheel_type": "Nova19",
                 "timestamp": int(time.time() * 1000),
             },
         }
