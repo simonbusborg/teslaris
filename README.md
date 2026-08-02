@@ -30,8 +30,9 @@ Security → Open Anyway**. On macOS 14 and earlier, **right-click → Open
 ## Features
 
 - Battery %, range (km/mi), charging status, charging power, charge limit
-  and time-to-full — refreshed every 15 minutes, or every minute while
-  charging
+  and time-to-full — refreshed every 15 minutes when parked; while
+  charging the cadence scales with time-to-full (5 min → 1 min as the
+  charge finishes)
 - A side view of your car at the top of the menu, auto-detected from the
   VIN and rendered by Tesla's configurator (free — not Fleet API traffic).
   The default is a neutral white car of the right model; to match your
@@ -132,11 +133,25 @@ runs the suite (no Tesla account needed — everything is fixture-driven).
 
 ## Costs
 
-With default polling (15 min parked, 1 min charging, sleeping car left
-alone) Teslaris stays around **$5–8/month of Fleet API usage — inside the
-$10 free credit** Tesla grants every developer account. The menu's
-"Refresh Now" is a real billed request (~$0.002); hammering it is the only
-way to spend meaningful money.
+Teslaris is built so spending **cannot** rocket:
+
+- **Adaptive polling.** Parked: every 15 min. Charging: every 5 min,
+  tightening to 1 min only for the final stretch — so an overnight
+  charge costs ~$0.20, not ~$1. A sleeping car is polled every 30 min
+  and never woken.
+- **A visible meter.** The menu shows the month's request count and
+  estimated cost (~$0.002 per request).
+- **A brake.** Past ~$8.40 estimated, all polling stretches to 30 min
+  for the rest of the month.
+- **A hard ceiling.** Don't add a payment method to your Tesla
+  developer account: Tesla then *suspends* API access at the credit
+  limit instead of billing you. Worst case is a paused app — never a
+  surprise bill.
+
+With default use Teslaris lands around **$4–7/month of Fleet API usage,
+inside the $10 free credit** Tesla grants every developer account. The
+menu's "Refresh Now" is a real billed request; hammering it is the only
+way to spend meaningfully faster.
 
 ## License
 

@@ -164,6 +164,11 @@ final class StatusItemController {
 
             menu.addItem(.separator())
             menu.addItem(kvItem("Updated", timeFormatter.string(from: data.lastUpdated)))
+            let requests = UsageMeter.monthlyCount
+            if requests > 0 {
+                menu.addItem(kvItem("API this month",
+                                    "\(requests) requests · ≈\(UsageMeter.estimatedCost(requests: requests))"))
+            }
             if data.isAsleep {
                 menu.addItem(rowItem("Car is asleep — showing last known data", warning: false))
             }

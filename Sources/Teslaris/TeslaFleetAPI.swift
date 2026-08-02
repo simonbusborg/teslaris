@@ -308,6 +308,7 @@ final class TeslaFleetAPI: VehicleDataSource {
     private func authed(url: URL, token: String) async throws -> (Data, URLResponse) {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        UsageMeter.record()   // every authed data call is a billed request
         return try await session.data(for: request)
     }
 

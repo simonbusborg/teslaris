@@ -80,9 +80,11 @@
   .lede strong { color: var(--text); font-weight: 600; }
 
   /* ---- stat row ---- */
-  .stats { display: flex; flex-wrap: wrap; margin-top: 8px; }
-  .stat { padding: 4px 48px 4px 0; margin-right: 48px; border-right: 1px solid var(--line); }
-  .stat:last-child { border-right: 0; margin-right: 0; }
+  #costs { text-align: center; }
+  #costs .lede { margin-left: auto; margin-right: auto; }
+  .stats { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  .stat { padding: 4px 48px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: 0; }
   .stat .num { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
   .stat .num small { font-size: 17px; font-weight: 500; margin-left: 2px; }
   .stat .cap { color: var(--text-gray); font-size: 14px; margin-top: 4px; }
@@ -260,8 +262,9 @@
     <div class="cards">
       <div class="card">
         <svg viewBox="0 0 24 24"><rect x="2" y="8" width="17" height="9" rx="2"/><path d="M21.5 11v3"/><rect x="5" y="10.5" width="7" height="4" rx="1" fill="currentColor" stroke="none"/></svg>
-        <h3>Live, but frugal</h3><p>Refreshes every 15 minutes — every minute while
-        charging, when the numbers actually move. Nothing polls your car to death.</p>
+        <h3>Live, but frugal</h3><p>Refreshes every 15 minutes when parked. While
+        charging, the cadence scales with time-to-full — down to every minute as the
+        charge finishes. Nothing polls your car to death.</p>
       </div>
       <div class="card">
         <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 1 6 6c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9a6 6 0 0 1 6-6z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
@@ -318,7 +321,7 @@
         <h3>Specifications</h3>
         <div class="spec-grid">
           <div class="spec"><div class="k">Refresh, parked</div><div class="v">15 min</div></div>
-          <div class="spec"><div class="k">Refresh, charging</div><div class="v">1 min</div></div>
+          <div class="spec"><div class="k">Refresh, charging</div><div class="v">5 → 1 min, adaptive</div></div>
           <div class="spec"><div class="k">Sleeping car</div><div class="v">Never woken</div></div>
         </div>
         <div class="spec-rule"></div>
@@ -452,6 +455,15 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
       shipped one shared key, all users would drain a single account and the app would
       have to charge a subscription. With your own free key, your usage stays inside your
       own free credit — forever free, structurally.</p>
+    </details>
+    <details>
+      <summary>Can the API costs run away?</summary>
+      <p>No — four layers prevent it. Polling adapts to state (15 min parked, 5→1 min
+      while charging, 30 min asleep); the menu shows the month's request count and
+      estimated cost; past roughly $8.40 estimated, Teslaris stretches all polling to
+      30 minutes for the rest of the month; and if you never add a payment method to
+      your Tesla developer account, Tesla simply suspends API access at the credit
+      limit instead of charging you. Worst case is a paused app — never a bill.</p>
     </details>
     <details>
       <summary>Which cars are supported?</summary>

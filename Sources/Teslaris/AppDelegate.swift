@@ -167,16 +167,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshNow()
     }
 
-    /// Poll every minute while charging (the numbers actually move).
-    /// Idle polling is 15 minutes — every request costs Fleet API credit,
-    /// and a parked car's numbers barely change.
     private func scheduleRefresh() {
-        let interval: TimeInterval = (latest?.isCharging == true) ? 60 : 900
+        let interval = Self.refreshInterval(for: latest,
+                                            monthlyRequests: UsageMeter.monthlyCount)
         if let timer = refreshTimer, timer.isValid, timer.timeInterval == interval { return }
         refreshTimer?.invalidate()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.refreshNow()
         }
+    }
+
+    /// Poll cadence by state, tuned for Fleet API billing (~$0.002 per
+    /// request). Parked: 15 min — the numbers barely move. Charging
+    /// scales with time-to-full, so an overnight charge doesn't burn a
+    /// request a minute for eight hours; the 1-minute cadence is saved
+    /// for the last stretch, when the numbers actually matter. Asleep is
+    /// checked first: a stale "Charging" state must never keep a
+    /// sleeping car on a fast poll. Near the $10 free credit, the brake
+    /// stretches everything to 30 minutes.
+    static func refreshInterval(for data: VehicleData?,
+                                monthlyRequests: Int) -> TimeInterval {
+        var interval: TimeInterval = 900
+        if let data {
+            if data.isAsleep {
+                interval = 1800
+            } else if data.isCharging {
+                let minutes = data.minutesToFull ?? 0
+                interval = minutes > 60 ? 300 : (minutes > 15 ? 120 : 60)
+            }
+        }
+        if monthlyRequests > 4200 {   // ≈ $8.40 of the $10 credit
+            interval = max(interval * 2, 1800)
+        }
+        return interval
     }
 
     // MARK: - Settings
