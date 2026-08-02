@@ -190,7 +190,7 @@ final class StatusItemController {
             }
             if !cabin.isEmpty {
                 menu.addItem(.separator())
-                cabin.forEach(menu.addItem)
+                cabin.forEach { menu.addItem($0) }
             }
 
             if let km = data.odometerKm {
@@ -320,7 +320,7 @@ final class StatusItemController {
         if data.trunkOpen == true { parts.append("trunk") }
         guard !parts.isEmpty else { return nil }
         let summary = parts.joined(separator: ", ") + " open"
-        return summary.prefix(1).uppercased() + summary.dropFirst()
+        return summary.prefix(1).uppercased() + String(summary.dropFirst())
     }
 
     /// vehicle_state.software_update → menu label; nil when idle.
