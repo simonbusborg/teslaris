@@ -97,8 +97,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.lastError = error.localizedDescription
                     self.statusController.render(data: self.latest, error: error.localizedDescription,
                                                  authenticated: false)
+                    // A dead session is "not signed in", not a transient
+                    // error: open Settings so the fix is in reach instead
+                    // of only an error row in the menu.
+                    if Self.isSignedOut(error) { self.showSettings() }
                 }
             }
+        }
+    }
+
+    /// True when the session is gone rather than the network being flaky —
+    /// no stored credentials, or Tesla rejecting the refresh token.
+    static func isSignedOut(_ error: Error) -> Bool {
+        switch error {
+        case TeslarisError.notConfigured, TeslarisError.authenticationFailed:
+            return true
+        default:
+            return false
         }
     }
 
