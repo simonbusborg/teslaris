@@ -164,7 +164,9 @@ final class StatusItemController {
 
             menu.addItem(.separator())
             menu.addItem(kvItem("Updated", timeFormatter.string(from: data.lastUpdated)))
-            let requests = UsageMeter.monthlyCount
+            // Demo mode shows a representative value — the real meter
+            // only counts actual billed requests.
+            let requests = DemoVehicleSource.enabled ? 172 : UsageMeter.monthlyCount
             if requests > 0 {
                 menu.addItem(kvItem("API this month",
                                     "\(requests) requests · ≈\(UsageMeter.estimatedCost(requests: requests))"))
