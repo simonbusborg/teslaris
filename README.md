@@ -52,12 +52,12 @@ Security → Open Anyway**. On macOS 14 and earlier, **right-click → Open
 
 ## Why "bring your own developer app"?
 
-Tesla's Fleet API bills per request, with a free $10/month credit **per
-developer account**. If Teslaris shipped with one shared API key, every
-user's polling would bill one account and the app would have to charge a
-subscription. Instead, each user registers their own free developer
-application once (~20 minutes) and Teslaris's modest polling stays
-comfortably inside their own free credit. Teslaris requests only the
+Tesla's Fleet API meters usage per request, with a free monthly allowance
+of ~5,000 requests **per developer account**. If Teslaris shipped with one
+shared API key, every user's polling would drain one account's credits and
+the app would have to charge a subscription. Instead, each user registers
+their own free developer application once (~20 minutes) and Teslaris's
+modest polling stays comfortably inside their own free credits. Teslaris requests only the
 read-only `vehicle_device_data` scope — it cannot unlock, wake, or drive
 your car.
 
@@ -141,8 +141,8 @@ Teslaris is built so spending **cannot** rocket:
 
 - **Adaptive polling.** Parked: every 15 min. Charging: every 5 min,
   tightening to 1 min only for the final stretch — so an overnight
-  charge costs ~$0.20, not ~$1. A sleeping car is polled every 30 min
-  and never woken.
+  charge costs ~100 credits, not ~500. A sleeping car is polled every
+  30 min and never woken.
 - **A visible gauge.** The menu shows credits used on a progress bar —
   the free monthly credit covers ~5,000 requests, so one request is one
   credit. It resets monthly, and no money appears in the app.
@@ -153,10 +153,10 @@ Teslaris is built so spending **cannot** rocket:
   limit instead of billing you. Worst case is a paused app — never a
   surprise bill.
 
-With default use Teslaris lands around **$4–7/month of Fleet API usage,
-inside the $10 free credit** Tesla grants every developer account. The
-menu's "Refresh Now" is a real billed request; hammering it is the only
-way to spend meaningfully faster.
+With default use Teslaris lands around **2,000–3,500 credits a month —
+well inside the free 5,000** every developer account gets. The menu's
+"Refresh Now" is a real request (one credit); hammering it is the only
+way to burn credits meaningfully faster.
 
 ## License
 
