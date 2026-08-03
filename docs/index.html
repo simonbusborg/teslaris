@@ -175,20 +175,6 @@
   .tip { margin-top: 14px; max-width: 660px; font-size: 14px; color: var(--text-gray); }
   .tip strong { color: var(--text); }
 
-  /* ---- in-page setup wizard ---- */
-  .wizard { margin-top: 16px; max-width: 660px; }
-  .wizard .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .wizard button.btn { border: 0; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500; min-width: 0; }
-  .wizard input {
-    font: inherit; font-size: 14px; padding: 9px 14px; min-width: 230px;
-    border: 1px solid rgba(23,26,32,0.25); border-radius: 4px; background: #fff;
-  }
-  .wizard input:focus { outline: 2px solid var(--text); outline-offset: -1px; }
-  .step details, .step details:last-of-type { border: 0; padding: 16px 0 0; }
-  .step details summary { font-size: 14px; color: var(--text-gray); justify-content: flex-start; gap: 8px; }
-  .step details summary::after { font-size: 16px; }
-  .step details[open] summary { color: var(--text); }
-
   /* ---- faq ---- */
   details { border-top: 1px solid var(--line); padding: 22px 0; }
   details:last-of-type { border-bottom: 1px solid var(--line); }
@@ -259,7 +245,8 @@
     gets about 5,000 free each month. Teslaris has no server and no shared key: you bring
     your own free Tesla developer application, so the app's modest polling draws on your
     own free credits — and the menu's gauge shows exactly where you stand. Nothing to
-    subscribe to, no card on file, and no third party ever sees your data.</p>
+    subscribe to, no card on file, and your car's data goes straight from Tesla to your
+    Mac.</p>
     <div class="stats">
       <div class="stat"><div class="num">5,000<small>/mo</small></div><div class="cap">Free credits with every developer account</div></div>
       <div class="stat"><div class="num">≈3,000<small>/mo</small></div><div class="cap">Typical Teslaris usage</div></div>
@@ -344,7 +331,7 @@
         <div class="spec-grid">
           <div class="spec"><div class="k">API scope</div><div class="v"><code>vehicle_device_data</code></div></div>
           <div class="spec"><div class="k">Credential storage</div><div class="v">macOS Keychain</div></div>
-          <div class="spec"><div class="k">Third parties</div><div class="v">None</div></div>
+          <div class="spec"><div class="k">Car data goes to</div><div class="v">Your Mac only</div></div>
         </div>
         <div class="spec-rule"></div>
         <div class="spec-grid">
@@ -362,81 +349,55 @@
 <section class="setup-section" id="setup">
   <div class="wrap">
     <h2>One-time setup</h2>
-    <p class="lede">About 20 minutes, and you'll never touch it again. Teslaris uses
-    <strong>your own free Tesla developer application</strong>, which is why it costs
-    nothing and shares nothing.</p>
+    <p class="lede">Three steps, about ten minutes, and you'll never touch it again.
+    Teslaris uses <strong>your own free Tesla developer application</strong> — that's why
+    it costs nothing and needs no card on file.</p>
     <div class="steps">
       <div class="step">
         <div class="stepnum">01</div>
         <div>
-          <h3>Generate a key pair</h3>
-          <p>Tesla requires registering a public key, even for read-only apps. Generate one
-          right here — the keys are created locally in your browser and never leave your
-          machine:</p>
-          <div class="wizard">
-            <button class="btn btn-dark" type="button" id="genKeys">Generate key pair</button>
-            <div id="keyResult" hidden>
-              <p class="tip"><strong>private-key.pem</strong> was just downloaded — keep it
-              somewhere safe. Teslaris never needs it; it only matters if you later want
-              vehicle commands. Your public key, for step 2:</p>
-              <pre><button class="copy">Copy</button><code id="pubPem"></code></pre>
-            </div>
-          </div>
+          <h3>Set up key hosting</h3>
+          <p>Tesla requires every app to register a public key, hosted on a domain — even
+          a read-only one like this. Teslaris does the whole thing itself: open
+          <strong>Settings…</strong> and click <strong>Set Up Key Hosting</strong>.</p>
+          <p>It creates the key pair on your Mac, publishes only the <em>public</em> half,
+          and fills in the domain for you. The private key never leaves your machine, and
+          a public key is public by design — Tesla downloads it unauthenticated.</p>
           <details>
-            <summary>Prefer the Terminal?</summary>
+            <summary>Rather host the key yourself?</summary>
+            <p class="tip">Generate the pair, publish the public half on any domain you
+            control, and type that domain into the Key domain field instead.</p>
             <pre><button class="copy">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
 openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></pre>
+            <p class="tip">Tesla looks for it at exactly this path — a free GitHub Pages
+            site (<code>username.github.io</code>) works well:</p>
+            <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
           </details>
         </div>
       </div>
       <div class="step">
         <div class="stepnum">02</div>
         <div>
-          <h3>Host the public key</h3>
-          <p>Tesla verifies your app by fetching the key from a domain you control. A free
-          GitHub Pages site works. Enter your GitHub username and we'll open GitHub's
-          editor with the key file prefilled at the right path — you just press
-          <strong>Commit changes</strong>:</p>
-          <div class="wizard">
-            <div class="row">
-              <input id="ghUser" autocomplete="off" spellcheck="false" placeholder="Your GitHub username">
-              <button class="btn btn-dark" type="button" id="ghLink">Create the key file on GitHub</button>
-            </div>
-            <p class="tip" id="ghHint" hidden>Commit that file and your key domain is
-            <code id="ghDomain"></code> — that's what you enter in Teslaris. If GitHub says
-            the repository doesn't exist, <a id="ghNewRepo" href="https://github.com/new"
-            target="_blank" rel="noopener">create it first</a> (public, named exactly
-            <code id="ghRepoName"></code>), then click the button again.</p>
-            <p class="tip" id="ghNudge" hidden>Generate the key pair in step 1 first — the
-            file content comes from there.</p>
-          </div>
-          <details>
-            <summary>Hosting it somewhere else?</summary>
-            <p class="tip">Any domain you control works. The key must be reachable at
-            exactly this path:</p>
-            <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
-          </details>
+          <h3>Create your Tesla developer app</h3>
+          <p>This is the one part nobody can automate — Tesla has no API for it. Sign in at
+          <a href="https://developer.tesla.com">developer.tesla.com</a> with your Tesla
+          account and create a new application. It's free.</p>
+          <p>Use the domain from step 1 as the <strong>Allowed Origin</strong>, add
+          <code>http://localhost:8973/callback</code> as an <strong>Allowed Redirect
+          URI</strong>, and request the <code>vehicle_device_data</code> scope. Note the
+          <strong>Client ID</strong> and <strong>Client Secret</strong>.</p>
+          <p class="tip">Tesla approves most applications within minutes, but it can take
+          up to a few business days. Until then the next step will fail — that's Tesla's
+          queue, not something you've done wrong.</p>
         </div>
       </div>
       <div class="step">
         <div class="stepnum">03</div>
         <div>
-          <h3>Create your Tesla developer app</h3>
-          <p>Sign in at <a href="https://developer.tesla.com">developer.tesla.com</a> with
-          your Tesla account and create a new application — it's free.</p>
-          <p>Use your domain from step 2 as the <strong>Allowed Origin</strong>, add
-          <code>http://localhost:8973/callback</code> as an <strong>Allowed Redirect
-          URI</strong>, and request the <code>vehicle_device_data</code> scope. Note the
-          <strong>Client ID</strong> and <strong>Client Secret</strong>.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="stepnum">04</div>
-        <div>
           <h3>Let Teslaris do the rest</h3>
-          <p>Open Teslaris → <strong>Settings…</strong> → paste your Client ID, Client
-          Secret and key domain, pick your region, then click <strong>Register App with
-          Tesla</strong> — the app performs the one-time partner registration for you.</p>
+          <p>Back in <strong>Settings…</strong>, paste your Client ID and Client Secret,
+          pick your region, and click <strong>Register App with Tesla</strong> — the app
+          performs the one-time partner registration for you.</p>
           <p>Then <strong>Save &amp; Sign in with Tesla…</strong> — your browser opens
           Tesla's own login page, and you're done.</p>
         </div>
@@ -450,9 +411,27 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
     <h2>Questions, answered plainly</h2>
     <details>
       <summary>Is my data safe?</summary>
-      <p>Teslaris talks only to Tesla: the official Fleet API for your car's data, and
-      Tesla's public image renderer for the car picture. There is no Teslaris server, no
-      analytics, no third party. Credentials and tokens are stored in the macOS Keychain.</p>
+      <p>Your car's data goes straight from Tesla's Fleet API to your Mac — it is never
+      relayed, stored or logged anywhere else, and the car picture comes from Tesla's own
+      public image renderer. Credentials and tokens live in the macOS Keychain, never in
+      plaintext. There is no analytics and no tracking of any kind.</p>
+      <p>One exception worth naming: if you use <strong>Set Up Key Hosting</strong>, the
+      app sends your <em>public</em> key once to a small service we run, which publishes it
+      for Tesla to fetch. That is the entire interaction — no car data, no credentials, no
+      account, and a public key is public by design. You can skip it entirely by hosting
+      the key yourself and typing your own domain into Settings.</p>
+    </details>
+    <details>
+      <summary>What exactly does the key hosting service see?</summary>
+      <p>One HTTP request during setup, containing one EC public key. It stores that key
+      and serves it at the path Tesla requires, on a subdomain generated just for you. It
+      never sees your Client Secret, your Tesla login, your VIN or anything about your car
+      — those only ever travel between your Mac and Tesla.</p>
+      <p>Keys are write-once: nothing can overwrite or replace a published key, there is no
+      way to list them, and the key it serves grants no access to any vehicle — Tesla uses
+      it only to verify that an application controls its domain. The
+      <a href="https://github.com/simonbusborg/teslaris/tree/main/cloudflare/key-host">source
+      is in the repository</a>.</p>
     </details>
     <details>
       <summary>Will it wake my car or drain the battery?</summary>
@@ -548,47 +527,6 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
     });
   }
 
-  // Setup wizard: generate the Tesla key pair in-browser (WebCrypto,
-  // local only — nothing leaves the machine) and prefill GitHub's
-  // new-file editor so hosting the key is one commit. The public key is
-  // exported as SPKI PEM, byte-identical to `openssl ec -pubout`.
-  let publicPem = '';
-  const pem = (buf, label) => `-----BEGIN ${label}-----\n`
-    + btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/(.{64})/g, '$1\n').trim()
-    + `\n-----END ${label}-----\n`;
-
-  document.getElementById('genKeys').addEventListener('click', async () => {
-    const kp = await crypto.subtle.generateKey(
-      {name: 'ECDSA', namedCurve: 'P-256'}, true, ['sign', 'verify']);
-    publicPem = pem(await crypto.subtle.exportKey('spki', kp.publicKey), 'PUBLIC KEY');
-    const privatePem = pem(await crypto.subtle.exportKey('pkcs8', kp.privateKey), 'PRIVATE KEY');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([privatePem], {type: 'application/x-pem-file'}));
-    a.download = 'private-key.pem';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    document.getElementById('pubPem').textContent = publicPem.trim();
-    document.getElementById('keyResult').hidden = false;
-    document.getElementById('genKeys').textContent = 'Generate a new key pair';
-  });
-
-  document.getElementById('ghLink').addEventListener('click', () => {
-    if (!publicPem) {
-      document.getElementById('ghNudge').hidden = false;
-      return;
-    }
-    const user = document.getElementById('ghUser').value.trim().replace(/^@/, '');
-    if (!user) { document.getElementById('ghUser').focus(); return; }
-    const repo = `${user}.github.io`;
-    window.open(`https://github.com/${user}/${repo}/new/main`
-      + `?filename=${encodeURIComponent('.well-known/appspecific/com.tesla.3p.public-key.pem')}`
-      + `&value=${encodeURIComponent(publicPem)}`, '_blank', 'noopener');
-    document.getElementById('ghNudge').hidden = true;
-    document.getElementById('ghDomain').textContent = repo;
-    document.getElementById('ghRepoName').textContent = repo;
-    document.getElementById('ghNewRepo').href = 'https://github.com/new';
-    document.getElementById('ghHint').hidden = false;
-  });
 </script>
 </body>
 </html>

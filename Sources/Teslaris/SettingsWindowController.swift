@@ -65,7 +65,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
         clientIdField.placeholderString = "Tesla developer app Client ID"
         clientSecretField.placeholderString = "Client Secret"
-        domainField.placeholderString = "username.github.io (hosts your public key)"
+        domainField.placeholderString = "Click Set Up Key Hosting →"
         // Editable text fields have no useful intrinsic width; without one,
         // the grid hands the window's spare width to the label column and
         // the whole form ends up shoved against the right edge.
@@ -81,7 +81,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         unitPopup.removeAllItems()
         for unit in DistanceUnit.allCases { unitPopup.addItem(withTitle: unit.rawValue) }
 
-        let guideLink = NSTextField(labelWithString: "Requires your own (free) Tesla developer app — see the setup guide.")
+        let guideLink = NSTextField(labelWithString: "Use the key domain as the Allowed Origin when you create your (free) Tesla developer app — see the setup guide.")
         guideLink.font = .systemFont(ofSize: 11)
         guideLink.textColor = .secondaryLabelColor
         guideLink.lineBreakMode = .byWordWrapping
@@ -92,17 +92,17 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         keyHostingButton = generateKeysButton
         let registerButton = NSButton(title: "Register App with Tesla",
                                       target: self, action: #selector(registerAction))
-        let keyRow = NSStackView(views: [generateKeysButton, registerButton])
-        keyRow.orientation = .horizontal
-        keyRow.spacing = 8
 
+        // Ordered as the setup guide runs: get a key domain, take it to
+        // Tesla, come back with the credentials it gives you.
         let grid = NSGridView(views: [
+            [label("Key domain:"), domainField],
+            [NSGridCell.emptyContentView, generateKeysButton],
+            [NSGridCell.emptyContentView, guideLink],
             [label("Client ID:"), clientIdField],
             [label("Client Secret:"), clientSecretField],
-            [label("Key domain:"), domainField],
             [label("Region:"), regionPopup],
-            [NSGridCell.emptyContentView, guideLink],
-            [NSGridCell.emptyContentView, keyRow],
+            [NSGridCell.emptyContentView, registerButton],
             [label("Show in bar:"), displayPopup],
             [label("Distances:"), unitPopup],
             [NSGridCell.emptyContentView, launchCheckbox],
@@ -114,16 +114,19 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         grid.columnSpacing = 10
         grid.rowAlignment = .firstBaseline
         grid.column(at: 0).xPlacement = .trailing
-        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox, keyRow,
+        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox,
+                        generateKeysButton, registerButton,
                         notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
-        grid.row(at: 4).topPadding = -6
-        grid.row(at: 5).topPadding = -4
-        grid.row(at: 6).topPadding = 10
-        grid.row(at: 9).topPadding = 10
-        grid.row(at: 10).topPadding = -6
+        grid.row(at: 1).topPadding = -2    // button hugs the domain field
+        grid.row(at: 2).topPadding = -4    // hint hugs the button
+        grid.row(at: 3).topPadding = 12    // credentials are a new group
+        grid.row(at: 6).topPadding = -2    // Register hugs its inputs
+        grid.row(at: 7).topPadding = 14    // display preferences
+        grid.row(at: 10).topPadding = 10   // notifications
         grid.row(at: 11).topPadding = -6
+        grid.row(at: 12).topPadding = -6
         grid.translatesAutoresizingMaskIntoConstraints = false
 
         let signInButton = NSButton(title: "Save & Sign in with Tesla…",
