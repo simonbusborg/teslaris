@@ -26,6 +26,7 @@ enum Keychain {
     private static let service = "com.weareheavy.teslaris"
     private static let secretAccount = "tesla-client-secret"
     private static let refreshAccount = "tesla-refresh-token"
+    private static let ownerAccount = "tesla-owner-refresh-token"
 
     // MARK: - Client secret
 
@@ -38,6 +39,12 @@ enum Keychain {
     static func saveRefreshToken(_ token: String) throws { try save(token, account: refreshAccount) }
     static func readRefreshToken() throws -> String? { try read(account: refreshAccount) }
     static func deleteRefreshToken() { delete(account: refreshAccount) }
+
+    // MARK: - Owner API session (the no-developer-account route)
+
+    static func saveOwnerRefreshToken(_ token: String) throws { try save(token, account: ownerAccount) }
+    static func readOwnerRefreshToken() throws -> String? { try read(account: ownerAccount) }
+    static func deleteOwnerRefreshToken() { delete(account: ownerAccount) }
 
     // MARK: - Plumbing
 
