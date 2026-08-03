@@ -10,10 +10,14 @@
 
 import AppKit
 
-final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate {
+final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate, NSTextViewDelegate {
 
     private let methodPopup = NSPopUpButton()
-    private let ownerTokenField = NSSecureTextField()
+    /// A Tesla refresh token is an ~800-character JWT — a single-line
+    /// field shows a useless sliver of it, so this is a small scrolling
+    /// text view instead.
+    private let ownerTokenView = NSTextView()
+    private let ownerTokenScroll = NSScrollView()
     private let ownerHelp = NSTextField(labelWithString: "")
     private let ownerStatus = NSTextField(labelWithString: "")
     /// Rows belonging to each method, hidden when the other is chosen.
@@ -116,6 +120,34 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         let registerButton = NSButton(title: "Register App with Tesla",
                                       target: self, action: #selector(registerAction))
 
+        methodPopup.removeAllItems()
+        for method in AuthMethod.allCases { methodPopup.addItem(withTitle: method.rawValue) }
+        methodPopup.target = self
+        methodPopup.action = #selector(methodChanged)
+
+        // A refresh token is an ~800-character JWT, so it gets a small
+        // scrolling text view rather than a one-line field.
+        ownerTokenView.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
+        ownerTokenView.isRichText = false
+        ownerTokenView.isAutomaticQuoteSubstitutionEnabled = false
+        ownerTokenView.isAutomaticDashSubstitutionEnabled = false
+        ownerTokenView.delegate = self
+        ownerTokenScroll.documentView = ownerTokenView
+        ownerTokenScroll.hasVerticalScroller = true
+        ownerTokenScroll.borderType = .bezelBorder
+        ownerTokenScroll.translatesAutoresizingMaskIntoConstraints = false
+        ownerTokenScroll.widthAnchor.constraint(equalToConstant: 340).isActive = true
+        ownerTokenScroll.heightAnchor.constraint(equalToConstant: 64).isActive = true
+
+        ownerHelp.stringValue = "No developer account needed. Generate a token with "
+            + "\"Auth App for Tesla\" (iOS) or \"Tesla Tokens\" (Android), then paste it here."
+        for hint in [ownerHelp, ownerStatus] {
+            hint.font = .systemFont(ofSize: 11)
+            hint.textColor = .secondaryLabelColor
+            hint.lineBreakMode = .byWordWrapping
+            hint.preferredMaxLayoutWidth = 340
+        }
+
         // Ordered as the setup guide runs: get a key domain, take it to
         // Tesla, come back with the credentials it gives you.
         for status in [domainStatus, credentialStatus] {
@@ -130,7 +162,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
 
         let grid = NSGridView(views: [
             [label("Sign in with:"), methodPopup],
-            [label("Refresh token:"), ownerTokenField],
+            [label("Refresh token:"), ownerTokenScroll],
             [NSGridCell.emptyContentView, ownerStatus],
             [NSGridCell.emptyContentView, ownerHelp],
             [label("Key domain:"), domainField],
@@ -212,7 +244,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
 
     private func loadValues() {
         methodPopup.selectItem(withTitle: Preferences.authMethod.rawValue)
-        ownerTokenField.stringValue = ((try? Keychain.readOwnerRefreshToken()) ?? nil) ?? ""
+        ownerTokenView.string = ((try? Keychain.readOwnerRefreshToken()) ?? nil) ?? ""
         applyMethodVisibility()
         clientIdField.stringValue = Preferences.clientId
         clientSecretField.stringValue = ((try? Keychain.readClientSecret()) ?? nil) ?? ""
@@ -246,8 +278,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
 
     /// Proves a pasted refresh token works before it is relied on, so a
     /// bad paste is rejected here rather than as a menu-bar error later.
+    func textDidEndEditing(_ notification: Notification) {
+        guard (notification.object as? NSTextView) === ownerTokenView else { return }
+        checkOwnerToken()
+    }
+
     private func checkOwnerToken() {
-        let token = ownerTokenField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let token = ownerTokenView.string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else { ownerStatus.stringValue = ""; return }
         guard token != checkedOwnerToken else { return }
         checkedOwnerToken = token
@@ -283,9 +320,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     /// actually changed.
     func controlTextDidEndEditing(_ notification: Notification) {
         guard let field = notification.object as? NSTextField else { return }
-        if field === ownerTokenField {
-            checkOwnerToken()
-        } else if field === domainField {
+        if field === domainField {
             checkDomain()
         } else if field === clientIdField || field === clientSecretField {
             checkCredentials()
@@ -375,7 +410,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
            let method = AuthMethod(rawValue: title) {
             Preferences.authMethod = method
         }
-        let ownerToken = ownerTokenField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ownerToken = ownerTokenView.string.trimmingCharacters(in: .whitespacesAndNewlines)
         if ownerToken.isEmpty {
             Keychain.deleteOwnerRefreshToken()
         } else {
