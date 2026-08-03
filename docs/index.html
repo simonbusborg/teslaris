@@ -175,6 +175,17 @@
   .tip { margin-top: 14px; max-width: 660px; font-size: 14px; color: var(--text-gray); }
   .tip strong { color: var(--text); }
 
+  /* Tesla's form fields, spelled out — the names it uses don't match
+     anything you'd guess from the app side. */
+  .fields { margin-top: 18px; max-width: 660px; }
+  .fields dt {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line);
+  }
+  .fields dt:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .fields dd { margin-top: 4px; color: var(--text-gray); font-size: 15px; }
+  .fields dd pre { margin-top: 10px; }
+
   /* ---- self-hosting dialog ----
      A fold inside the FAQ-style accordions read as a nested accordion;
      this is a secondary path, so it gets a link-button and a modal. */
@@ -419,10 +430,32 @@
           <p>This is the one part nobody can automate — Tesla has no API for it. Sign in at
           <a href="https://developer.tesla.com">developer.tesla.com</a> with your Tesla
           account and create a new application. It's free.</p>
-          <p>Use the domain from step 2 as the <strong>Allowed Origin</strong>, add
-          <code>http://localhost:8973/callback</code> as an <strong>Allowed Redirect
-          URI</strong>, and request the <code>vehicle_device_data</code> scope. Note the
-          <strong>Client ID</strong> and <strong>Client Secret</strong>.</p>
+          <p>Tesla's form asks for these under unfamiliar names. Fill them in exactly
+          like this:</p>
+          <dl class="fields">
+            <dt>OAuth grant type</dt>
+            <dd>Authorization code <em>and</em> machine-to-machine. Teslaris needs both —
+            machine-to-machine registers the app, authorization code reads your car.
+            "Machine-to-machine only" will not work.</dd>
+
+            <dt>Allowed Origin URL</dt>
+            <dd>Your key domain from step 1, with <code>https://</code> in front, e.g.
+            <code>https://tesla-5422dc3b98.weareheavy.dev</code></dd>
+
+            <dt>Allowed Redirect URI</dt>
+            <dd>Exactly this, and nothing else. It points at Teslaris on your own Mac —
+            not at your key domain:
+            <pre><button class="copy">Copy</button><code>http://localhost:8973/callback</code></pre></dd>
+
+            <dt>Allowed Returning URL</dt>
+            <dd>Leave it empty.</dd>
+
+            <dt>Scope</dt>
+            <dd><code>vehicle_device_data</code>, and nothing else — Teslaris is read-only
+            and needs no other permission.</dd>
+          </dl>
+          <p>Then note the <strong>Client ID</strong> and <strong>Client Secret</strong> —
+          they go into Settings in step 3.</p>
           <p class="tip">Tesla approves most applications within minutes, but it can take
           up to a few business days. Until then the next step will fail — that's Tesla's
           queue, not something you've done wrong.</p>
