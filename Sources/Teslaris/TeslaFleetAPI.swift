@@ -196,6 +196,27 @@ final class TeslaFleetAPI: VehicleDataSource {
 
         let token = try await partnerTokenForAnyRegion(clientId: clientId, secret: secret)
 
+        // Register in EVERY region, not just the selected one. The user
+        // signs in against their own account's home region, and Tesla's
+        // authorize step fails with "No policy rules" if the partner
+        // account was never registered there. Registering everywhere
+        // means the sign-in works regardless of where the account lives.
+        var succeeded = false
+        var lastError: Error?
+        for region in Region.allCases {
+            do {
+                try await registerPartnerAccount(domain: domain, token: token,
+                                                 apiBase: region.apiBase)
+                succeeded = true
+            } catch {
+                lastError = error
+                debugLog("partner_accounts in \(region.rawValue) failed: \(error.localizedDescription)")
+            }
+        }
+        if !succeeded { throw lastError ?? TeslarisError.http("registration failed in all regions") }
+    }
+
+    private func registerPartnerAccount(domain: String, token: String, apiBase: String) async throws {
         var registration = URLRequest(url: URL(string: "\(apiBase)/api/1/partner_accounts")!)
         registration.httpMethod = "POST"
         registration.setValue("application/json", forHTTPHeaderField: "Content-Type")
