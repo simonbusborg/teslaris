@@ -186,6 +186,9 @@
   .linkbtn:hover { color: var(--text-gray); border-bottom-color: var(--text-gray); }
 
   dialog {
+    /* The global margin reset also wipes the UA's `margin: auto` that
+       centres a modal dialog — restore it. */
+    margin: auto;
     max-width: 620px; width: calc(100% - 48px); padding: 40px;
     border: 0; border-radius: 10px; background: #fff; color: var(--text);
     box-shadow: 0 40px 90px rgba(0, 0, 0, 0.28);
@@ -217,20 +220,6 @@
   details[open] summary::after { content: "–"; }
   details p { margin-top: 12px; color: var(--text-gray); font-size: 15px; max-width: 760px; }
   details p a { color: var(--text); }
-
-  /* ---- decrypt reveal ---- */
-  .decrypt-figure {
-    position: relative; margin-top: 8px; border-radius: 10px;
-    overflow: hidden; background: #0b0d10;
-  }
-  .decrypt-figure img { display: block; width: 100%; height: auto; }
-  .decrypt-figure canvas {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    display: none; cursor: crosshair; touch-action: pan-y;
-  }
-  .decrypt-figure.live canvas { display: block; }
-  .decrypt-figure.live img { visibility: hidden; }
-  #decrypt .hint { margin-top: 14px; font-size: 12.5px; color: var(--text-faint); }
 
   /* ---- footer ---- */
   footer { padding: 40px 0 56px; font-size: 12.5px; color: var(--text-gray); }
@@ -393,12 +382,25 @@
 <section class="setup-section" id="setup">
   <div class="wrap">
     <h2>One-time setup</h2>
-    <p class="lede">Three steps, about ten minutes, and you'll never touch it again.
+    <p class="lede">Four steps, about ten minutes, and you'll never touch it again.
     Teslaris uses <strong>your own free Tesla developer application</strong> — that's why
     it costs nothing and needs no card on file.</p>
     <div class="steps">
       <div class="step">
         <div class="stepnum">01</div>
+        <div>
+          <h3>Install and open</h3>
+          <p>Download Teslaris.dmg and drag Teslaris into <strong>Applications</strong>.</p>
+          <p>Open it — macOS blocks the first launch because the app isn't notarized yet.
+          Click <strong>Done</strong> (not "Move to Bin"), then go to
+          <strong>System&nbsp;Settings → Privacy&nbsp;&amp;&nbsp;Security</strong> and
+          click <strong>Open&nbsp;Anyway</strong>.</p>
+          <p class="tip"><strong>This happens once.</strong> After that, Teslaris opens
+          like any other app.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="stepnum">02</div>
         <div>
           <h3>Set up key hosting</h3>
           <p>Tesla requires every app to register a public key, hosted on a domain — even
@@ -411,13 +413,13 @@
         </div>
       </div>
       <div class="step">
-        <div class="stepnum">02</div>
+        <div class="stepnum">03</div>
         <div>
           <h3>Create your Tesla developer app</h3>
           <p>This is the one part nobody can automate — Tesla has no API for it. Sign in at
           <a href="https://developer.tesla.com">developer.tesla.com</a> with your Tesla
           account and create a new application. It's free.</p>
-          <p>Use the domain from step 1 as the <strong>Allowed Origin</strong>, add
+          <p>Use the domain from step 2 as the <strong>Allowed Origin</strong>, add
           <code>http://localhost:8973/callback</code> as an <strong>Allowed Redirect
           URI</strong>, and request the <code>vehicle_device_data</code> scope. Note the
           <strong>Client ID</strong> and <strong>Client Secret</strong>.</p>
@@ -427,7 +429,7 @@
         </div>
       </div>
       <div class="step">
-        <div class="stepnum">03</div>
+        <div class="stepnum">04</div>
         <div>
           <h3>Let Teslaris do the rest</h3>
           <p>Back in <strong>Settings…</strong>, paste your Client ID and Client Secret,
@@ -528,21 +530,6 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   it only matters if you later want Tesla's vehicle command API.</p>
 </dialog>
 
-<section id="decrypt" hidden>
-  <div class="wrap">
-    <h2>Look, don’t touch</h2>
-    <p class="lede">Teslaris in one picture: run your cursor across it and the cipher
-    gives way. You get to see everything — and change nothing.</p>
-    <figure class="decrypt-figure" role="img"
-      aria-label="A white Tesla seen from above in an empty parking garage, revealed through a decryption effect">
-      <img src="tesla-decrypt.jpg" alt="" width="2944" height="1959"
-        loading="lazy" decoding="async" crossorigin="anonymous">
-      <canvas aria-hidden="true"></canvas>
-    </figure>
-    <p class="hint">Point anywhere in the image to decrypt it.</p>
-  </div>
-</section>
-
 <footer>
   <div class="wrap">
     <span>Teslaris © Simon Busborg</span>
@@ -604,6 +591,7 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
       setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
     });
   }
+
 
 </script>
 </body>
