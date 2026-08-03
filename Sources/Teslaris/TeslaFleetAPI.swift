@@ -188,7 +188,14 @@ final class TeslaFleetAPI: VehicleDataSource {
     /// token (the developer app itself, not the user session), so it
     /// works before the first sign-in. `domain` is where the public key
     /// is hosted (…/.well-known/appspecific/com.tesla.3p.public-key.pem).
-    func registerPartnerAccount(domain: String) async throws {
+    /// Registers in every region and returns a per-region summary the
+    /// UI shows verbatim. You sign in against your account's home
+    /// region, and Tesla's authorize step fails with "No policy rules"
+    /// if the partner account was never registered *there* — so the
+    /// region that matters must actually succeed, and any failure has
+    /// to be visible rather than masked by another region's success.
+    @discardableResult
+    func registerPartnerAccount(domain: String) async throws -> String {
         let clientId = Preferences.clientId
         guard !clientId.isEmpty,
               let secret = try? Keychain.readClientSecret(), !secret.isEmpty
@@ -196,24 +203,37 @@ final class TeslaFleetAPI: VehicleDataSource {
 
         let token = try await partnerTokenForAnyRegion(clientId: clientId, secret: secret)
 
-        // Register in EVERY region, not just the selected one. The user
-        // signs in against their own account's home region, and Tesla's
-        // authorize step fails with "No policy rules" if the partner
-        // account was never registered there. Registering everywhere
-        // means the sign-in works regardless of where the account lives.
-        var succeeded = false
-        var lastError: Error?
+        var lines: [String] = []
+        var anySucceeded = false
         for region in Region.allCases {
             do {
                 try await registerPartnerAccount(domain: domain, token: token,
                                                  apiBase: region.apiBase)
-                succeeded = true
+                lines.append("✓ \(region.rawValue)")
+                anySucceeded = true
             } catch {
-                lastError = error
+                lines.append("✗ \(region.rawValue): \(error.localizedDescription)")
                 debugLog("partner_accounts in \(region.rawValue) failed: \(error.localizedDescription)")
             }
         }
-        if !succeeded { throw lastError ?? TeslarisError.http("registration failed in all regions") }
+        let summary = lines.joined(separator: "\n")
+        // If a region failed, surface the whole breakdown — the failing
+        // region may be the user's own, which no other success covers.
+        guard anySucceeded, lines.allSatisfy({ $0.hasPrefix("✓") }) else {
+            throw TeslarisError.http(summary)
+        }
+        return summary
+    }
+
+    /// Fetches the public key the domain is already serving, so it can
+    /// be sent inline with registration. Best-effort — nil on any error.
+    private func hostedPublicKey(domain: String) async throws -> String? {
+        guard let url = URL(string: "https://\(domain)/\(KeyPair.wellKnownPath)") else { return nil }
+        let (data, response) = try await session.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let pem = String(data: data, encoding: .utf8),
+              pem.contains("BEGIN PUBLIC KEY") else { return nil }
+        return pem.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func registerPartnerAccount(domain: String, token: String, apiBase: String) async throws {
@@ -221,13 +241,21 @@ final class TeslaFleetAPI: VehicleDataSource {
         registration.httpMethod = "POST"
         registration.setValue("application/json", forHTTPHeaderField: "Content-Type")
         registration.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        registration.httpBody = try JSONSerialization.data(withJSONObject: ["domain": domain])
+        // Tesla fetches the key from the domain itself, but the reference
+        // integrations also send it inline — some regions reject a
+        // domain-only body as "a semantic problem with the data".
+        var payload: [String: Any] = ["domain": domain]
+        if let pem = try? await hostedPublicKey(domain: domain) { payload["pem"] = pem }
+        registration.httpBody = try JSONSerialization.data(withJSONObject: payload)
         let (body, regResponse) = try await session.data(for: registration)
         let status = (regResponse as? HTTPURLResponse)?.statusCode ?? -1
         guard (200..<300).contains(status) else {
             let text = String(data: body, encoding: .utf8) ?? ""
+            let detail = (try? JSONSerialization.jsonObject(with: body) as? [String: Any])
+                .flatMap { ($0?["error"] as? [String: Any])?["message"] as? String
+                    ?? $0?["error"] as? String }
             debugLog("partner_accounts \(status): \(text.prefix(300))")
-            throw TeslarisError.http("registration failed (\(status)) — is the public key reachable at https://\(domain)/.well-known/appspecific/com.tesla.3p.public-key.pem ?")
+            throw TeslarisError.http(detail ?? "HTTP \(status)")
         }
     }
 

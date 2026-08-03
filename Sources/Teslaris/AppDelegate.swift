@@ -244,16 +244,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func registerPartnerAccount(domain: String) {
         Task {
             do {
-                try await fleetAPI.registerPartnerAccount(domain: domain)
+                let summary = try await fleetAPI.registerPartnerAccount(domain: domain)
                 await MainActor.run {
                     self.showAlert(title: "Registered with Tesla",
-                                   text: "Your app is registered for \(domain). "
-                                       + "You can sign in now.")
+                                   text: "Registered \(domain) in every region:\n\n\(summary)"
+                                       + "\n\nYou can sign in now.")
                 }
             } catch {
                 await MainActor.run {
                     self.showAlert(title: "Registration failed",
-                                   text: error.localizedDescription)
+                                   text: "One or more regions failed. You sign in against "
+                                       + "your account's own region, so that one must "
+                                       + "succeed:\n\n\(error.localizedDescription)")
                 }
             }
         }
