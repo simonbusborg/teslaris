@@ -90,13 +90,16 @@ final class TeslaFleetAPI: VehicleDataSource {
         NSWorkspace.shared.open(components.url!)
         let code = try await codeTask
 
+        // No `audience`: the app's registered audience can be a value no
+        // request matches, and Tesla then rejects an explicit one — the
+        // same trap that blocked partner registration. Omitting it lets
+        // Tesla use the app's own registered audiences.
         try await exchangeToken(params: [
             "grant_type": "authorization_code",
             "client_id": clientId,
             "client_secret": secret,
             "code": code,
-            "redirect_uri": Self.redirectURI,
-            "audience": Preferences.region.apiBase
+            "redirect_uri": Self.redirectURI
         ])
     }
 
@@ -307,8 +310,14 @@ final class TeslaFleetAPI: VehicleDataSource {
     /// One-shot HTTP listener on localhost that catches the OAuth redirect,
     /// answers with a tiny "you can close this tab" page, and returns the code.
     static func waitForCallback(expectedState: String,
-                                port: UInt16 = callbackPort) async throws -> String {
-        let listener = try NWListener(using: .tcp,
+                                port: UInt16 = callbackPort,
+                                timeout: TimeInterval = 300) async throws -> String {
+        // Allow reuse so a listener leaked by an abandoned sign-in (the
+        // browser closed before any callback arrived) doesn't keep the
+        // port bound — that surfaced as "Address already in use".
+        let parameters = NWParameters.tcp
+        parameters.allowLocalEndpointReuse = true
+        let listener = try NWListener(using: parameters,
                                       on: NWEndpoint.Port(rawValue: port)!)
         defer { listener.cancel() }
 
@@ -318,6 +327,12 @@ final class TeslaFleetAPI: VehicleDataSource {
                 guard !finished else { return }
                 finished = true
                 continuation.resume(with: result)
+            }
+
+            // Never wait forever: an abandoned sign-in must release the
+            // port so the next attempt can bind it.
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+                finish(.failure(TeslarisError.authenticationFailed("sign-in timed out")))
             }
 
             listener.newConnectionHandler = { connection in
