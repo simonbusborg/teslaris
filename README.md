@@ -88,7 +88,7 @@ public file (GitHub Pages works — you already have GitHub).
 3. **Create the developer app** at [developer.tesla.com](https://developer.tesla.com):
    sign in with your Tesla account → "Create new application". Use your
    domain from step 2 as *Allowed Origin*, and add
-   `http://localhost:8973/callback` as an *Allowed Redirect URI*.
+   `https://teslaris-keys.weareheavy.dev/oauth/callback` as an *Allowed Redirect URI*.
    Request the `vehicle_device_data` scope. Note the **Client ID** and
    **Client Secret**.
 

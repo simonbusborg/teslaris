@@ -25,7 +25,7 @@ AUTH_HOST="https://auth.tesla.com"
 TOKEN_HOST="https://fleet-auth.prd.vn.cloud.tesla.com"
 NA="https://fleet-api.prd.na.vn.cloud.tesla.com"
 EU="https://fleet-api.prd.eu.vn.cloud.tesla.com"
-REDIRECT="http://localhost:8973/callback"
+REDIRECT="https://teslaris-keys.weareheavy.dev/oauth/callback"
 SCOPES="openid offline_access vehicle_device_data"
 WELL_KNOWN=".well-known/appspecific/com.tesla.3p.public-key.pem"
 
@@ -171,7 +171,7 @@ cmd_login() {
   bold "Waiting for Tesla to redirect back to $REDIRECT …"
   info "(the browser will show 'can't be reached' — that is expected)"
   echo
-  read -r -p "  Paste the full localhost URL from the address bar: " cb
+  read -r -p "  Paste the full callback URL from the address bar: " cb
   local code; code=$(printf '%s' "$cb" | sed -n 's/.*[?&]code=\([^&]*\).*/\1/p')
   [ -z "$code" ] && { bad "no ?code= in that URL"; return 1; }
   ok "authorization code received"

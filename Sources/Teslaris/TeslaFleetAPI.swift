@@ -27,8 +27,14 @@ final class TeslaFleetAPI: VehicleDataSource {
     /// token generation there may become unreliable; both still answer
     /// today, but this is the documented endpoint.
     private let tokenBase = "https://fleet-auth.prd.vn.cloud.tesla.com"
-    /// Local loopback the user registers as their app's redirect URI.
-    static let redirectURI = "http://localhost:8973/callback"
+    /// Tesla will not act as an OAuth client for an http://localhost
+    /// redirect: the developer portal accepts one, but sign-in then
+    /// fails with "No policy rules". Every working integration — Home
+    /// Assistant's among them — registers an HTTPS redirect instead, so
+    /// this points at a tiny endpoint that bounces straight back to the
+    /// local listener below. Source in cloudflare/key-host/.
+    static let redirectURI = "https://teslaris-keys.weareheavy.dev/oauth/callback"
+    /// Where that bounce lands, and what the listener binds.
     static let callbackPort: UInt16 = 8973
     private let scopes = "openid offline_access vehicle_device_data"
 

@@ -74,6 +74,33 @@ export default {
 async function handleApi(request, env) {
   const url = new URL(request.url);
 
+  // Tesla refuses to be an OAuth client for http://localhost redirects —
+  // the portal accepts one, but sign-in then fails with "No policy
+  // rules". Every working integration registers an HTTPS redirect, so
+  // Tesla is sent here and we bounce straight back to the app's local
+  // listener. Nothing is read, logged or stored: the query string is
+  // passed through untouched.
+  if (url.pathname === "/oauth/callback") {
+    const target = `http://localhost:8973/callback${url.search}`;
+    return new Response(
+      `<!doctype html><meta charset="utf-8">` +
+        `<meta http-equiv="refresh" content="0;url=${target.replace(/&/g, "&amp;")}">` +
+        `<title>Teslaris</title>` +
+        `<body style="font-family:-apple-system;padding:2em">` +
+        `<h2>Signing you in…</h2>` +
+        `<p>If nothing happens, <a href="${target.replace(/&/g, "&amp;")}">continue to Teslaris</a>.</p>`,
+      {
+        status: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          // A one-time authorization code must never be cached.
+          "cache-control": "no-store",
+          refresh: `0;url=${target}`,
+        },
+      },
+    );
+  }
+
   if (url.pathname === "/v1/keys" && request.method === "POST") {
     return registerKey(request, env);
   }

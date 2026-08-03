@@ -509,9 +509,10 @@
               in front, e.g. <code>https://tesla-5422dc3b98.weareheavy.dev</code></dd>
 
               <dt>Allowed Redirect URI</dt>
-              <dd>Exactly this, and nothing else. It points at Teslaris on your own Mac —
-              not at your key domain:
-              <pre><button class="copy">Copy</button><code>http://localhost:8973/callback</code></pre></dd>
+              <dd>Exactly this, and nothing else. Tesla refuses to sign users in for a
+              <code>localhost</code> redirect, so this HTTPS address hands the
+              sign-in straight back to Teslaris on your Mac:
+              <pre><button class="copy">Copy</button><code>https://teslaris-keys.weareheavy.dev/oauth/callback</code></pre></dd>
 
               <dt>Allowed Returning URL</dt>
               <dd>Leave it empty.</dd>
