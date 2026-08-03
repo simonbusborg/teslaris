@@ -175,6 +175,36 @@
   .tip { margin-top: 14px; max-width: 660px; font-size: 14px; color: var(--text-gray); }
   .tip strong { color: var(--text); }
 
+  /* ---- self-hosting dialog ----
+     A fold inside the FAQ-style accordions read as a nested accordion;
+     this is a secondary path, so it gets a link-button and a modal. */
+  .linkbtn {
+    margin-top: 18px; padding: 0; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 500; color: var(--text);
+    border-bottom: 1px solid var(--text); line-height: 1.2;
+  }
+  .linkbtn:hover { color: var(--text-gray); border-bottom-color: var(--text-gray); }
+
+  dialog {
+    max-width: 620px; width: calc(100% - 48px); padding: 40px;
+    border: 0; border-radius: 10px; background: #fff; color: var(--text);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.28);
+  }
+  dialog::backdrop { background: rgba(23, 26, 32, 0.55); backdrop-filter: blur(3px); }
+  dialog h3 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; }
+  dialog p { color: var(--text-gray); font-size: 15px; }
+  dialog p + pre { margin-top: 14px; }
+  dialog pre + p { margin-top: 22px; }
+  dialog pre { background: var(--card); max-width: none; }
+  dialog pre .copy { background: #fff; }
+  dialog .dialog-note { margin-top: 24px; font-size: 13.5px; color: var(--text-faint); }
+  .dialog-close {
+    position: absolute; top: 16px; right: 18px;
+    border: 0; background: none; cursor: pointer;
+    font-size: 26px; line-height: 1; color: var(--text-faint); padding: 4px 8px;
+  }
+  .dialog-close:hover { color: var(--text); }
+
   /* ---- faq ---- */
   details { border-top: 1px solid var(--line); padding: 22px 0; }
   details:last-of-type { border-bottom: 1px solid var(--line); }
@@ -187,6 +217,20 @@
   details[open] summary::after { content: "–"; }
   details p { margin-top: 12px; color: var(--text-gray); font-size: 15px; max-width: 760px; }
   details p a { color: var(--text); }
+
+  /* ---- decrypt reveal ---- */
+  .decrypt-figure {
+    position: relative; margin-top: 8px; border-radius: 10px;
+    overflow: hidden; background: #0b0d10;
+  }
+  .decrypt-figure img { display: block; width: 100%; height: auto; }
+  .decrypt-figure canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    display: none; cursor: crosshair; touch-action: pan-y;
+  }
+  .decrypt-figure.live canvas { display: block; }
+  .decrypt-figure.live img { visibility: hidden; }
+  #decrypt .hint { margin-top: 14px; font-size: 12.5px; color: var(--text-faint); }
 
   /* ---- footer ---- */
   footer { padding: 40px 0 56px; font-size: 12.5px; color: var(--text-gray); }
@@ -363,16 +407,7 @@
           <p>It creates the key pair on your Mac, publishes only the <em>public</em> half,
           and fills in the domain for you. The private key never leaves your machine, and
           a public key is public by design — Tesla downloads it unauthenticated.</p>
-          <details>
-            <summary>Rather host the key yourself?</summary>
-            <p class="tip">Generate the pair, publish the public half on any domain you
-            control, and type that domain into the Key domain field instead.</p>
-            <pre><button class="copy">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
-openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></pre>
-            <p class="tip">Tesla looks for it at exactly this path — a free GitHub Pages
-            site (<code>username.github.io</code>) works well:</p>
-            <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
-          </details>
+          <button type="button" class="linkbtn" id="selfHostOpen">Rather host the key yourself?</button>
         </div>
       </div>
       <div class="step">
@@ -476,6 +511,38 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   </div>
 </section>
 
+<dialog id="selfHostDialog">
+  <form method="dialog">
+    <button class="dialog-close" aria-label="Close">&times;</button>
+  </form>
+  <h3>Host the key yourself</h3>
+  <p>Generate the pair, publish the public half on any domain you control, and type that
+  domain into the <strong>Key domain</strong> field instead. Teslaris never contacts our
+  key service in that case.</p>
+  <pre><button class="copy">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
+openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></pre>
+  <p>Tesla looks for it at exactly this path — a free GitHub Pages site
+  (<code>username.github.io</code>) works well:</p>
+  <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
+  <p class="dialog-note">Keep <code>private-key.pem</code> safe. Teslaris never uses it —
+  it only matters if you later want Tesla's vehicle command API.</p>
+</dialog>
+
+<section id="decrypt" hidden>
+  <div class="wrap">
+    <h2>Look, don’t touch</h2>
+    <p class="lede">Teslaris in one picture: run your cursor across it and the cipher
+    gives way. You get to see everything — and change nothing.</p>
+    <figure class="decrypt-figure" role="img"
+      aria-label="A white Tesla seen from above in an empty parking garage, revealed through a decryption effect">
+      <img src="tesla-decrypt.jpg" alt="" width="2944" height="1959"
+        loading="lazy" decoding="async" crossorigin="anonymous">
+      <canvas aria-hidden="true"></canvas>
+    </figure>
+    <p class="hint">Point anywhere in the image to decrypt it.</p>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <span>Teslaris © Simon Busborg</span>
@@ -518,6 +585,17 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   hero.alt = `Side view of a ${pick.name}`;
   document.querySelector('.menu-card img.car').src = compositor(pick.code, pick.options, 800);
   document.querySelector('.menu-card .mrow.title span').textContent = pick.name;
+
+  // Self-hosting is a side path: a modal keeps it out of the main flow
+  // without nesting an accordion inside one.
+  const selfHostDialog = document.getElementById('selfHostDialog');
+  document.getElementById('selfHostOpen').addEventListener('click', () => {
+    selfHostDialog.showModal();
+  });
+  // Clicking the backdrop (outside the panel) closes it, as expected.
+  selfHostDialog.addEventListener('click', (event) => {
+    if (event.target === selfHostDialog) selfHostDialog.close();
+  });
 
   for (const btn of document.querySelectorAll('pre .copy')) {
     btn.addEventListener('click', async () => {
