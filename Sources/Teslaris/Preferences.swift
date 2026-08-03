@@ -40,22 +40,8 @@ enum Region: String, CaseIterable {
     }
 }
 
-/// How Teslaris talks to Tesla. Two genuinely different contracts, not
-/// a cosmetic switch — see TeslaOwnerAPI for why both exist.
-enum AuthMethod: String, CaseIterable {
-    /// Paste a refresh token; no developer account at all.
-    case ownerAPI = "Sign in with Tesla (simple)"
-    /// Bring your own developer application.
-    case fleetAPI = "Tesla developer app (official)"
-}
-
 enum Preferences {
     private static let d = UserDefaults.standard
-
-    static var authMethod: AuthMethod {
-        get { AuthMethod(rawValue: d.string(forKey: "auth_method") ?? "") ?? .ownerAPI }
-        set { d.set(newValue.rawValue, forKey: "auth_method") }
-    }
 
     /// The user's own Tesla developer application client ID.
     static var clientId: String {

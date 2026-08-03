@@ -13,19 +13,28 @@ Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 (the same app for Polestar). Docs and setup guide:
 [simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
 
-**[Download Teslaris.dmg](https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg)** · [All releases](https://github.com/simonbusborg/teslaris/releases)
+## Status: under development
+
+**Not ready to install.** The app itself is complete — menu, data
+parsing, notifications, cost controls and the whole setup flow are built
+and tested — but sign-in cannot be completed. Tesla's authorisation step
+fails with "No policy rules" for correctly configured applications,
+because the API resource an application is bound to can carry no policy
+at all. That is a defect on Tesla's side with no workaround available to
+us; a support case is open.
+
+Everything else can be explored today without a Tesla account, via demo
+mode or the mock server (see below). Builds will be published once
+sign-in works end to end.
 
 ## Install
 
-Download `Teslaris.dmg` from the
-[latest release](https://github.com/simonbusborg/teslaris/releases/latest),
-open it, and drag Teslaris to Applications (a `Teslaris.zip` is also
-attached for scripted installs). Releases are built by GitHub Actions —
-cut with `make release VERSION=x.y.z`, which bumps `Info.plist`, tags,
-and pushes. macOS blocks the first launch of unsigned releases ("Apple
-could not verify…"): click **Done**, then **System Settings → Privacy &
-Security → Open Anyway**. On macOS 14 and earlier, **right-click → Open
-→ Open** also works. This happens once.
+Releases are built by GitHub Actions, cut with
+`make release VERSION=x.y.z`, which bumps `Info.plist`, tags and pushes.
+macOS blocks the first launch of unsigned builds ("Apple could not
+verify…"): click **Done**, then **System Settings → Privacy & Security →
+Open Anyway**. On macOS 14 and earlier, **right-click → Open → Open**
+also works. This happens once.
 
 ## Features
 

@@ -69,6 +69,15 @@
   .btn-light { background: var(--card); color: var(--text); }
   .btn-light:hover { background: #eaeaea; }
 
+  /* ---- development banner ----
+     Stated plainly rather than tucked away: the app cannot be set up
+     yet, and nobody should download it expecting it to work. */
+  .devbanner {
+    background: var(--text); color: #fff;
+    font-size: 14px; line-height: 1.5; padding: 14px 0;
+  }
+  .devbanner strong { font-weight: 600; }
+
   /* ---- hero ---- */
   header { text-align: center; padding: 96px 0 0; }
   h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 600; letter-spacing: -0.015em; line-height: 1.1; }
@@ -297,14 +306,22 @@
   </div>
 </nav>
 
+<div class="devbanner">
+  <div class="wrap">
+    <strong>Under development.</strong> Teslaris is not ready to install yet — sign-in is
+    blocked by a defect on Tesla's side that prevents third-party authorisation. Downloads
+    will appear here once it works end to end.
+  </div>
+</div>
+
 <header>
   <div class="wrap">
     <h1>Your Tesla, in the menu bar</h1>
     <p class="sub">Battery, range and charging status at a glance. A tiny native
     macOS app — no Electron, no accounts, no subscription.</p>
     <div class="cta">
-      <a class="btn btn-dark" href="https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg">Download</a>
-      <a class="btn btn-light" href="#setup">Setup guide</a>
+      <a class="btn btn-light" href="#setup">How setup will work</a>
+      <a class="btn btn-light" href="https://github.com/simonbusborg/teslaris">Follow on GitHub</a>
     </div>
     <p class="fineprint">Free and open source · macOS 13+ · Not affiliated with Tesla</p>
   </div>
@@ -451,8 +468,10 @@
         <div class="stepnum">01</div>
         <div>
           <h3>Install Teslaris</h3>
-          <p>Download Teslaris.dmg, drag Teslaris into <strong>Applications</strong>, and
-          open it. It appears in your menu bar, ready for the rest of the setup.</p>
+          <p>Once builds are available, you'll drag Teslaris into
+          <strong>Applications</strong> and open it; it appears in your menu bar, ready for
+          the rest of the setup. There is nothing to download yet — see the notice at the
+          top of this page.</p>
           <details class="more">
             <summary>macOS says it "cannot be opened"?</summary>
             <p>Expected on first launch — the app isn't notarized by Apple yet. Click

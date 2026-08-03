@@ -10,19 +10,7 @@
 
 import AppKit
 
-final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate, NSTextViewDelegate {
-
-    private let methodPopup = NSPopUpButton()
-    /// A Tesla refresh token is an ~800-character JWT — a single-line
-    /// field shows a useless sliver of it, so this is a small scrolling
-    /// text view instead.
-    private let ownerTokenView = NSTextView()
-    private let ownerTokenScroll = NSScrollView()
-    private let ownerHelp = NSTextField(labelWithString: "")
-    private let ownerStatus = NSTextField(labelWithString: "")
-    /// Rows belonging to each method, hidden when the other is chosen.
-    private var ownerRowRange: [NSGridRow] = []
-    private var fleetRowRange: [NSGridRow] = []
+final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate {
 
     private let clientIdField = NSTextField()
     private let clientSecretField = NSSecureTextField()
@@ -46,7 +34,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     /// re-hit Tesla on every focus change.
     private var checkedCredentials: String?
     private var checkedDomain: String?
-    private var checkedOwnerToken: String?
 
     private let onSave: () -> Void
     private let onSignIn: () -> Void
@@ -120,34 +107,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         let registerButton = NSButton(title: "Register App with Tesla",
                                       target: self, action: #selector(registerAction))
 
-        methodPopup.removeAllItems()
-        for method in AuthMethod.allCases { methodPopup.addItem(withTitle: method.rawValue) }
-        methodPopup.target = self
-        methodPopup.action = #selector(methodChanged)
-
-        // A refresh token is an ~800-character JWT, so it gets a small
-        // scrolling text view rather than a one-line field.
-        ownerTokenView.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
-        ownerTokenView.isRichText = false
-        ownerTokenView.isAutomaticQuoteSubstitutionEnabled = false
-        ownerTokenView.isAutomaticDashSubstitutionEnabled = false
-        ownerTokenView.delegate = self
-        ownerTokenScroll.documentView = ownerTokenView
-        ownerTokenScroll.hasVerticalScroller = true
-        ownerTokenScroll.borderType = .bezelBorder
-        ownerTokenScroll.translatesAutoresizingMaskIntoConstraints = false
-        ownerTokenScroll.widthAnchor.constraint(equalToConstant: 340).isActive = true
-        ownerTokenScroll.heightAnchor.constraint(equalToConstant: 64).isActive = true
-
-        ownerHelp.stringValue = "No developer account needed. Generate a token with "
-            + "\"Auth App for Tesla\" (iOS) or \"Tesla Tokens\" (Android), then paste it here."
-        for hint in [ownerHelp, ownerStatus] {
-            hint.font = .systemFont(ofSize: 11)
-            hint.textColor = .secondaryLabelColor
-            hint.lineBreakMode = .byWordWrapping
-            hint.preferredMaxLayoutWidth = 340
-        }
-
         // Ordered as the setup guide runs: get a key domain, take it to
         // Tesla, come back with the credentials it gives you.
         for status in [domainStatus, credentialStatus] {
@@ -161,10 +120,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         domainField.delegate = self
 
         let grid = NSGridView(views: [
-            [label("Sign in with:"), methodPopup],
-            [label("Refresh token:"), ownerTokenScroll],
-            [NSGridCell.emptyContentView, ownerStatus],
-            [NSGridCell.emptyContentView, ownerHelp],
             [label("Key domain:"), domainField],
             [NSGridCell.emptyContentView, domainStatus],
             [NSGridCell.emptyContentView, generateKeysButton],
@@ -190,24 +145,17 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
                         notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
-        grid.row(at: 1).topPadding = 12    // credentials group
-        grid.row(at: 2).topPadding = -6    // verdict hugs the token field
-        grid.row(at: 3).topPadding = -4    // help hugs the verdict
-        grid.row(at: 5).topPadding = -6    // verdict hugs the domain field
-        grid.row(at: 6).topPadding = -2    // button under it
-        grid.row(at: 7).topPadding = -4    // hint hugs the button
-        grid.row(at: 8).topPadding = 12    // Fleet credentials group
-        grid.row(at: 10).topPadding = -6   // verdict hugs the secret field
-        grid.row(at: 12).topPadding = -2   // Register hugs its inputs
-        grid.row(at: 13).topPadding = 14   // display preferences
-        grid.row(at: 16).topPadding = 10   // notifications
-        grid.row(at: 17).topPadding = -6
-        grid.row(at: 18).topPadding = -6
+        grid.row(at: 1).topPadding = -6    // verdict hugs the domain field
+        grid.row(at: 2).topPadding = -2    // button under it
+        grid.row(at: 3).topPadding = -4    // hint hugs the button
+        grid.row(at: 4).topPadding = 12    // credentials are a new group
+        grid.row(at: 6).topPadding = -6    // verdict hugs the secret field
+        grid.row(at: 8).topPadding = -2    // Register hugs its inputs
+        grid.row(at: 9).topPadding = 14    // display preferences
+        grid.row(at: 12).topPadding = 10   // notifications
+        grid.row(at: 13).topPadding = -6
+        grid.row(at: 14).topPadding = -6
 
-        // Only one method's fields are relevant at a time.
-        ownerRowRange = (1...3).map { grid.row(at: $0) }
-        fleetRowRange = (4...12).map { grid.row(at: $0) }
-        applyMethodVisibility()
         grid.translatesAutoresizingMaskIntoConstraints = false
 
         let signInButton = NSButton(title: "Save & Sign in with Tesla…",
@@ -243,9 +191,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     }
 
     private func loadValues() {
-        methodPopup.selectItem(withTitle: Preferences.authMethod.rawValue)
-        ownerTokenView.string = ((try? Keychain.readOwnerRefreshToken()) ?? nil) ?? ""
-        applyMethodVisibility()
         clientIdField.stringValue = Preferences.clientId
         clientSecretField.stringValue = ((try? Keychain.readClientSecret()) ?? nil) ?? ""
         domainField.stringValue = Preferences.domain
@@ -256,60 +201,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         notifyStartCheckbox.state = Preferences.notifyChargingStarted ? .on : .off
         notifyDoneCheckbox.state = Preferences.notifyChargingComplete ? .on : .off
         notifyProblemCheckbox.state = Preferences.notifyChargingProblem ? .on : .off
-    }
-
-    // MARK: - Sign-in method
-
-    @objc private func methodChanged() {
-        if let title = methodPopup.titleOfSelectedItem,
-           let method = AuthMethod(rawValue: title) {
-            Preferences.authMethod = method
-        }
-        applyMethodVisibility()
-        window?.setContentSize(NSSize(width: 520,
-                                      height: window?.contentView?.fittingSize.height ?? 300))
-    }
-
-    private func applyMethodVisibility() {
-        let owner = Preferences.authMethod == .ownerAPI
-        for row in ownerRowRange { row.isHidden = !owner }
-        for row in fleetRowRange { row.isHidden = owner }
-    }
-
-    /// Proves a pasted refresh token works before it is relied on, so a
-    /// bad paste is rejected here rather than as a menu-bar error later.
-    func textDidEndEditing(_ notification: Notification) {
-        guard (notification.object as? NSTextView) === ownerTokenView else { return }
-        checkOwnerToken()
-    }
-
-    private func checkOwnerToken() {
-        let token = ownerTokenView.string.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !token.isEmpty else { ownerStatus.stringValue = ""; return }
-        guard token != checkedOwnerToken else { return }
-        checkedOwnerToken = token
-
-        setStatus(ownerStatus, "Checking with Tesla…", .secondaryLabelColor)
-        Task {
-            do {
-                let api = TeslaOwnerAPI()
-                try await api.signIn(refreshToken: token)
-                _ = try? await api.fetchVehicleData(vin: "")
-                let names = api.vehicles.map(\.title).joined(separator: ", ")
-                await MainActor.run {
-                    self.setStatus(self.ownerStatus,
-                                   names.isEmpty ? "✓ Signed in"
-                                                 : "✓ Signed in — \(names)",
-                                   .systemGreen)
-                }
-            } catch {
-                await MainActor.run {
-                    self.checkedOwnerToken = nil
-                    self.setStatus(self.ownerStatus, "✗ \(error.localizedDescription)",
-                                   .systemOrange)
-                }
-            }
-        }
     }
 
     // MARK: - Live validation
@@ -406,16 +297,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     /// Persists all fields. Returns false when the Keychain write failed.
     @discardableResult
     private func persist() -> Bool {
-        if let title = methodPopup.titleOfSelectedItem,
-           let method = AuthMethod(rawValue: title) {
-            Preferences.authMethod = method
-        }
-        let ownerToken = ownerTokenView.string.trimmingCharacters(in: .whitespacesAndNewlines)
-        if ownerToken.isEmpty {
-            Keychain.deleteOwnerRefreshToken()
-        } else {
-            try? Keychain.saveOwnerRefreshToken(ownerToken)
-        }
         Preferences.clientId = clientIdField.stringValue.trimmingCharacters(in: .whitespaces)
         Preferences.domain = domainField.stringValue.trimmingCharacters(in: .whitespaces)
         if let title = regionPopup.titleOfSelectedItem, let region = Region(rawValue: title) {
@@ -558,13 +439,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
 
     @objc private func signInAction() {
         guard persist() else { return }
-        // The simple route has no browser step — the pasted token *is*
-        // the session, so just start using it.
-        if Preferences.authMethod == .ownerAPI {
-            window?.orderOut(nil)
-            onSave()
-            return
-        }
         // New credentials invalidate the old Fleet session.
         Keychain.deleteRefreshToken()
         window?.orderOut(nil)

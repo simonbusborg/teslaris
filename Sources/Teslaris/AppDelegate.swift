@@ -13,13 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Demo mode swaps the whole backend for a scripted timeline:
     ///   defaults write com.weareheavy.teslaris debug_demo_mode -bool YES
-    private var source: VehicleDataSource {
-        if DemoVehicleSource.enabled { return demoSource }
-        return Preferences.authMethod == .ownerAPI ? ownerAPI : fleetAPI
-    }
-    private let demoSource = DemoVehicleSource()
+    private lazy var source: VehicleDataSource =
+        DemoVehicleSource.enabled ? DemoVehicleSource() : fleetAPI
     private let fleetAPI = TeslaFleetAPI()
-    private let ownerAPI = TeslaOwnerAPI()
 
     private let notifier = Notifier()
     private let updateChecker = UpdateChecker()
@@ -81,13 +77,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private var hasCredentials: Bool {
-        switch Preferences.authMethod {
-        case .ownerAPI:
-            return ((try? Keychain.readOwnerRefreshToken()) ?? nil)?.isEmpty == false
-        case .fleetAPI:
-            guard !Preferences.clientId.isEmpty else { return false }
-            return ((try? Keychain.readRefreshToken()) ?? nil)?.isEmpty == false
-        }
+        guard !Preferences.clientId.isEmpty else { return false }
+        return ((try? Keychain.readRefreshToken()) ?? nil)?.isEmpty == false
     }
 
     // MARK: - Session lifecycle
