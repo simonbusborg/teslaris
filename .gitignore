@@ -1,4 +1,5 @@
-.build/
 *.app
+.build/
 *.dmg
 .DS_Store
+mock-server/.env
