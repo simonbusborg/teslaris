@@ -19,8 +19,14 @@ final class TeslaFleetAPI: VehicleDataSource {
 
     // MARK: - Endpoints
 
-    /// OAuth host. China uses auth.tesla.cn — not supported yet.
+    /// Browser-facing OAuth host — where the user actually logs in.
+    /// China uses auth.tesla.cn — not supported yet.
     private let authBase = "https://auth.tesla.com"
+    /// Server-to-server host for token exchange. Tesla has been moving
+    /// partner traffic off auth.tesla.com since 2025 and warns that
+    /// token generation there may become unreliable; both still answer
+    /// today, but this is the documented endpoint.
+    private let tokenBase = "https://fleet-auth.prd.vn.cloud.tesla.com"
     /// Local loopback the user registers as their app's redirect URI.
     static let redirectURI = "http://localhost:8973/callback"
     static let callbackPort: UInt16 = 8973
@@ -37,7 +43,7 @@ final class TeslaFleetAPI: VehicleDataSource {
     private var tokenEndpoint: String {
         if let override = UserDefaults.standard.string(forKey: "debug_base_url"),
            !override.isEmpty { return "\(override)/oauth2/v3/token" }
-        return "\(authBase)/oauth2/v3/token"
+        return "\(tokenBase)/oauth2/v3/token"
     }
 
     // MARK: - State
@@ -131,8 +137,20 @@ final class TeslaFleetAPI: VehicleDataSource {
               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let token = json["access_token"] as? String
         else {
+            // Tesla names the actual problem; pass it on rather than
+            // guessing. client_not_found in particular means the ID is
+            // wrong or incomplete, which a generic message hides.
+            let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            let code = body?["error"] as? String ?? ""
+            if code == "client_not_found" {
+                throw TeslarisError.authenticationFailed(
+                    "Tesla doesn't recognise that Client ID. It should be 36 "
+                    + "characters (8-4-4-4-12) — check none is missing.")
+            }
+            let detail = body?["error_description"] as? String ?? code
             throw TeslarisError.authenticationFailed(
-                "couldn't get a partner token — check Client ID and Secret")
+                detail.isEmpty ? "couldn't get a partner token — check Client ID and Secret"
+                               : "Tesla says: \(detail)")
         }
 
         var registration = URLRequest(url: URL(string: "\(apiBase)/api/1/partner_accounts")!)
