@@ -115,17 +115,27 @@ final class TeslaFleetAPI: VehicleDataSource {
     /// Tesla's own wording, which names the real problem far better than
     /// any guess we could make.
     private func partnerToken(clientId: String, secret: String,
-                              audience: String) async throws -> String {
-        var request = URLRequest(url: URL(string: tokenEndpoint)!)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = Self.formEncode([
+                              audience: String?) async throws -> String {
+        var params = [
             "grant_type": "client_credentials",
             "client_id": clientId,
             "client_secret": secret,
-            "scope": "openid",
-            "audience": audience
-        ]).data(using: .utf8)
+            // Matches the scopes the application is registered with; a
+            // narrower set here has been seen to fail.
+            "scope": "openid vehicle_device_data"
+        ]
+        // Optional on purpose. Tesla documents `audience` as required,
+        // but applications can be registered with an audience the API
+        // then refuses to match — e.g. both regional URLs stored as one
+        // space-separated string, which no single value can equal.
+        // Omitting it makes Tesla fall back to the audiences actually
+        // registered for the app, yielding a token valid for all of them.
+        if let audience { params["audience"] = audience }
+
+        var request = URLRequest(url: URL(string: tokenEndpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Self.formEncode(params).data(using: .utf8)
 
         let (data, response) = try await session.data(for: request)
         let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
@@ -146,27 +156,21 @@ final class TeslaFleetAPI: VehicleDataSource {
         return token
     }
 
-    /// Tesla provisions an application per region and rejects any other
-    /// region's audience. Rather than make that the user's puzzle, try
-    /// the configured region first, fall back to the rest, and remember
-    /// whichever Tesla accepted.
+    /// Asking for no audience at all is both the simplest request and
+    /// the most likely to work: Tesla then issues a token for whatever
+    /// the application is actually registered for. Only if that is
+    /// refused do we name regions explicitly, in case some applications
+    /// require it.
     @discardableResult
     private func partnerTokenForAnyRegion(clientId: String, secret: String) async throws -> String {
-        var regions = [Preferences.region]
-        regions += Region.allCases.filter { $0 != Preferences.region }
-
         var lastFailure: Error?
-        for region in regions {
+        for audience in [nil] + Region.allCases.map({ Optional($0.apiBase) }) {
             do {
-                let token = try await partnerToken(clientId: clientId, secret: secret,
-                                                   audience: region.apiBase)
-                if region != Preferences.region {
-                    debugLog("region \(Preferences.region.rawValue) rejected; using \(region.rawValue)")
-                    await MainActor.run { Preferences.region = region }
-                }
-                return token
+                return try await partnerToken(clientId: clientId, secret: secret,
+                                              audience: audience)
             } catch {
                 lastFailure = error
+                if let audience { debugLog("audience \(audience) refused") }
             }
         }
         throw lastFailure ?? TeslarisError.authenticationFailed("couldn't get a partner token")
