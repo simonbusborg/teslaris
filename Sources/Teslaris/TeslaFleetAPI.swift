@@ -146,6 +146,39 @@ final class TeslaFleetAPI: VehicleDataSource {
         return token
     }
 
+    /// Tesla provisions an application per region and rejects any other
+    /// region's audience. Rather than make that the user's puzzle, try
+    /// the configured region first, fall back to the rest, and remember
+    /// whichever Tesla accepted.
+    @discardableResult
+    private func partnerTokenForAnyRegion(clientId: String, secret: String) async throws -> String {
+        var regions = [Preferences.region]
+        regions += Region.allCases.filter { $0 != Preferences.region }
+
+        var lastFailure: Error?
+        for region in regions {
+            do {
+                let token = try await partnerToken(clientId: clientId, secret: secret,
+                                                   audience: region.apiBase)
+                if region != Preferences.region {
+                    debugLog("region \(Preferences.region.rawValue) rejected; using \(region.rawValue)")
+                    await MainActor.run { Preferences.region = region }
+                }
+                return token
+            } catch {
+                lastFailure = error
+            }
+        }
+        throw lastFailure ?? TeslarisError.authenticationFailed("couldn't get a partner token")
+    }
+
+    /// Checks credentials against Tesla without registering anything, so
+    /// a wrong Client ID or Secret is caught the moment it is entered
+    /// rather than several steps later.
+    func validateCredentials(clientId: String, secret: String) async throws {
+        try await partnerTokenForAnyRegion(clientId: clientId, secret: secret)
+    }
+
     /// One-time partner-account registration with Tesla — replaces the
     /// curl step from the old setup guide. Uses a client_credentials
     /// token (the developer app itself, not the user session), so it
@@ -157,31 +190,7 @@ final class TeslaFleetAPI: VehicleDataSource {
               let secret = try? Keychain.readClientSecret(), !secret.isEmpty
         else { throw TeslarisError.notConfigured }
 
-        // Tesla provisions an application per region, and rejects the
-        // audience of any other one. Rather than make that the user's
-        // puzzle, try the configured region first and fall back to the
-        // rest — then remember whichever Tesla accepted.
-        var regions = [Preferences.region]
-        regions += Region.allCases.filter { $0 != Preferences.region }
-
-        var token: String?
-        var lastFailure: Error?
-        for region in regions {
-            do {
-                token = try await partnerToken(clientId: clientId, secret: secret,
-                                               audience: region.apiBase)
-                if region != Preferences.region {
-                    debugLog("region \(Preferences.region.rawValue) rejected; using \(region.rawValue)")
-                    Preferences.region = region
-                }
-                break
-            } catch {
-                lastFailure = error
-            }
-        }
-        guard let token else {
-            throw lastFailure ?? TeslarisError.authenticationFailed("couldn't get a partner token")
-        }
+        let token = try await partnerTokenForAnyRegion(clientId: clientId, secret: secret)
 
         var registration = URLRequest(url: URL(string: "\(apiBase)/api/1/partner_accounts")!)
         registration.httpMethod = "POST"

@@ -10,7 +10,7 @@
 
 import AppKit
 
-final class SettingsWindowController: NSWindowController, NSWindowDelegate {
+final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate {
 
     private let clientIdField = NSTextField()
     private let clientSecretField = NSSecureTextField()
@@ -25,6 +25,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     /// Held so the key-hosting action can show progress on it.
     private weak var keyHostingButton: NSButton?
+
+    /// Inline verdicts, so a wrong value is caught where it is typed
+    /// rather than several steps later.
+    private let domainStatus = NSTextField(labelWithString: "")
+    private let credentialStatus = NSTextField(labelWithString: "")
+    /// What we last checked, so leaving a field untouched doesn't
+    /// re-hit Tesla on every focus change.
+    private var checkedCredentials: String?
+    private var checkedDomain: String?
 
     private let onSave: () -> Void
     private let onSignIn: () -> Void
@@ -100,12 +109,24 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
         // Ordered as the setup guide runs: get a key domain, take it to
         // Tesla, come back with the credentials it gives you.
+        for status in [domainStatus, credentialStatus] {
+            status.font = .systemFont(ofSize: 11)
+            status.textColor = .secondaryLabelColor
+            status.lineBreakMode = .byWordWrapping
+            status.preferredMaxLayoutWidth = 340
+        }
+        clientIdField.delegate = self
+        clientSecretField.delegate = self
+        domainField.delegate = self
+
         let grid = NSGridView(views: [
             [label("Key domain:"), domainField],
+            [NSGridCell.emptyContentView, domainStatus],
             [NSGridCell.emptyContentView, generateKeysButton],
             [NSGridCell.emptyContentView, guideLink],
             [label("Client ID:"), clientIdField],
             [label("Client Secret:"), clientSecretField],
+            [NSGridCell.emptyContentView, credentialStatus],
             [label("Region:"), regionPopup],
             [NSGridCell.emptyContentView, registerButton],
             [label("Show in bar:"), displayPopup],
@@ -120,18 +141,20 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         grid.rowAlignment = .firstBaseline
         grid.column(at: 0).xPlacement = .trailing
         for control in [regionPopup, displayPopup, unitPopup, launchCheckbox,
-                        generateKeysButton, registerButton,
+                        generateKeysButton, registerButton, domainStatus, credentialStatus,
                         notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
-        grid.row(at: 1).topPadding = -2    // button hugs the domain field
-        grid.row(at: 2).topPadding = -4    // hint hugs the button
-        grid.row(at: 3).topPadding = 12    // credentials are a new group
-        grid.row(at: 6).topPadding = -2    // Register hugs its inputs
-        grid.row(at: 7).topPadding = 14    // display preferences
-        grid.row(at: 10).topPadding = 10   // notifications
-        grid.row(at: 11).topPadding = -6
-        grid.row(at: 12).topPadding = -6
+        grid.row(at: 1).topPadding = -6    // verdict hugs the domain field
+        grid.row(at: 2).topPadding = -2    // button under it
+        grid.row(at: 3).topPadding = -4    // hint hugs the button
+        grid.row(at: 4).topPadding = 12    // credentials are a new group
+        grid.row(at: 6).topPadding = -6    // verdict hugs the secret field
+        grid.row(at: 8).topPadding = -2    // Register hugs its inputs
+        grid.row(at: 9).topPadding = 14    // display preferences
+        grid.row(at: 12).topPadding = 10   // notifications
+        grid.row(at: 13).topPadding = -6
+        grid.row(at: 14).topPadding = -6
         grid.translatesAutoresizingMaskIntoConstraints = false
 
         let signInButton = NSButton(title: "Save & Sign in with Tesla…",
@@ -177,6 +200,95 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         notifyStartCheckbox.state = Preferences.notifyChargingStarted ? .on : .off
         notifyDoneCheckbox.state = Preferences.notifyChargingComplete ? .on : .off
         notifyProblemCheckbox.state = Preferences.notifyChargingProblem ? .on : .off
+    }
+
+    // MARK: - Live validation
+
+    /// Checks whatever the user just finished typing, so a wrong value
+    /// is caught here instead of surfacing as an opaque Tesla error
+    /// several steps later. Each check runs only when the value has
+    /// actually changed.
+    func controlTextDidEndEditing(_ notification: Notification) {
+        guard let field = notification.object as? NSTextField else { return }
+        if field === domainField {
+            checkDomain()
+        } else if field === clientIdField || field === clientSecretField {
+            checkCredentials()
+        }
+    }
+
+    private func checkDomain() {
+        let domain = domainField.stringValue.trimmingCharacters(in: .whitespaces)
+        guard !domain.isEmpty else { domainStatus.stringValue = ""; return }
+        guard domain != checkedDomain else { return }
+        checkedDomain = domain
+
+        setStatus(domainStatus, "Checking the key is reachable…", .secondaryLabelColor)
+        Task {
+            let url = "https://\(domain)/\(KeyPair.wellKnownPath)"
+            var request = URLRequest(url: URL(string: url) ?? URL(string: "https://invalid")!)
+            request.timeoutInterval = 20
+            let ok: Bool
+            if let (data, response) = try? await URLSession.shared.data(for: request) {
+                ok = (response as? HTTPURLResponse)?.statusCode == 200
+                    && String(data: data, encoding: .utf8)?.contains("BEGIN PUBLIC KEY") == true
+            } else {
+                ok = false
+            }
+            await MainActor.run {
+                if ok {
+                    self.setStatus(self.domainStatus, "✓ Tesla can fetch your key here",
+                                   .systemGreen)
+                } else {
+                    self.checkedDomain = nil   // let a retry re-check
+                    self.setStatus(self.domainStatus,
+                                   "✗ No public key served at this domain yet",
+                                   .systemOrange)
+                }
+            }
+        }
+    }
+
+    private func checkCredentials() {
+        let id = clientIdField.stringValue.trimmingCharacters(in: .whitespaces)
+        let secret = clientSecretField.stringValue
+        guard !id.isEmpty, !secret.isEmpty else { credentialStatus.stringValue = ""; return }
+
+        // A Tesla client ID is a UUID; say so before spending a request.
+        guard id.count == 36, id.filter({ $0 == "-" }).count == 4 else {
+            setStatus(credentialStatus,
+                      "✗ A Client ID is 36 characters (8-4-4-4-12) — this one is \(id.count)",
+                      .systemOrange)
+            return
+        }
+
+        let fingerprint = "\(id)\u{1}\(secret)"
+        guard fingerprint != checkedCredentials else { return }
+        checkedCredentials = fingerprint
+
+        setStatus(credentialStatus, "Checking with Tesla…", .secondaryLabelColor)
+        Task {
+            do {
+                try await TeslaFleetAPI().validateCredentials(clientId: id, secret: secret)
+                await MainActor.run {
+                    self.regionPopup.selectItem(withTitle: Preferences.region.rawValue)
+                    self.setStatus(self.credentialStatus,
+                                   "✓ Tesla accepts these — region: \(Preferences.region.rawValue)",
+                                   .systemGreen)
+                }
+            } catch {
+                await MainActor.run {
+                    self.checkedCredentials = nil
+                    self.setStatus(self.credentialStatus, "✗ \(error.localizedDescription)",
+                                   .systemOrange)
+                }
+            }
+        }
+    }
+
+    private func setStatus(_ field: NSTextField, _ text: String, _ color: NSColor) {
+        field.stringValue = text
+        field.textColor = color
     }
 
     // MARK: - Actions
@@ -251,6 +363,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
                 await MainActor.run {
                     self.domainField.stringValue = domain
+                    self.setStatus(self.domainStatus,
+                                   reachable ? "✓ Tesla can fetch your key here"
+                                             : "Key uploaded — going live…",
+                                   reachable ? .systemGreen : .secondaryLabelColor)
+                    self.checkedDomain = reachable ? domain : nil
                     Preferences.domain = domain
                     button?.isEnabled = true
                     button?.title = "Set Up Key Hosting"
