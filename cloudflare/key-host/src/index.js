@@ -100,19 +100,21 @@ async function registerKey(request, env) {
   }
 
   // Random, unguessable, and meaningless: 5 bytes → 10 hex chars.
-  const bytes = new Uint8Array(5);
-  crypto.getRandomValues(bytes);
-  const id = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const domain = `tesla-${id}.weareheavy.dev`;
+  // Keys are write-once — an existing entry is never overwritten, so a
+  // collision (≈2^-40) just draws another id rather than clobbering
+  // somebody's registration.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const bytes = new Uint8Array(5);
+    crypto.getRandomValues(bytes);
+    const id = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const domain = `tesla-${id}.weareheavy.dev`;
 
-  // Keys are write-once: a collision (≈2^-40) must not overwrite.
-  const existing = await env.KEYS.get(domain);
-  if (existing !== null) {
-    return json(500, { error: "please retry" });
+    if ((await env.KEYS.get(domain)) === null) {
+      await env.KEYS.put(domain, pem);
+      return json(201, { domain, path: PEM_PATH });
+    }
   }
-  await env.KEYS.put(domain, pem);
-
-  return json(201, { domain, path: PEM_PATH });
+  return json(503, { error: "could not allocate a domain, please retry" });
 }
 
 // Returns the canonical PEM when the body is exactly one P-256 SPKI

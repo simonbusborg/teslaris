@@ -23,6 +23,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let notifyDoneCheckbox = NSButton(checkboxWithTitle: "Charging complete", target: nil, action: nil)
     private let notifyProblemCheckbox = NSButton(checkboxWithTitle: "Charging problems", target: nil, action: nil)
 
+    /// Held so the key-hosting action can show progress on it.
+    private weak var keyHostingButton: NSButton?
+
     private let onSave: () -> Void
     private let onSignIn: () -> Void
     private let onRegister: (String) -> Void
@@ -84,8 +87,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guideLink.lineBreakMode = .byWordWrapping
         guideLink.preferredMaxLayoutWidth = 270
 
-        let generateKeysButton = NSButton(title: "Generate Key Pair…",
+        let generateKeysButton = NSButton(title: "Set Up Key Hosting",
                                          target: self, action: #selector(generateKeysAction))
+        keyHostingButton = generateKeysButton
         let registerButton = NSButton(title: "Register App with Tesla",
                                       target: self, action: #selector(registerAction))
         let keyRow = NSStackView(views: [generateKeysButton, registerButton])
@@ -213,47 +217,81 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         onSave()
     }
 
-    /// Generates the Tesla key pair on this Mac — no Terminal, no
-    /// openssl. Writes both PEMs to a folder the user picks and reveals
-    /// the public one, which is the file that has to be hosted.
+    /// The whole key step in one button: generate the pair on this Mac,
+    /// upload only the public half, and fill in the domain now serving
+    /// it. No Terminal, no openssl, no hosting to arrange.
     @objc private func generateKeysAction() {
-        let panel = NSOpenPanel()
-        panel.message = "Choose where to save your Tesla key pair"
-        panel.prompt = "Save Here"
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory,
-                                                      in: .userDomainMask).first
-        guard panel.runModal() == .OK, let directory = panel.url else { return }
+        let button = keyHostingButton
+        button?.isEnabled = false
+        button?.title = "Setting Up…"
 
-        do {
+        Task {
             let keys = KeyPair.generate()
-            let publicURL = try KeyPair.write(keys, to: directory)
-            NSWorkspace.shared.activateFileViewerSelecting([publicURL])
+            do {
+                let domain = try await KeyHosting.host(publicPEM: keys.publicPEM)
+                let reachable = await KeyHosting.verify(domain: domain,
+                                                        expecting: keys.publicPEM)
+                // Keep the private key: Teslaris never needs it, but the
+                // user would if they ever move to Tesla's command API.
+                var savedTo: URL?
+                if let url = try? KeyHosting.privateKeyURL() {
+                    try? keys.privatePEM.write(to: url, atomically: true, encoding: .utf8)
+                    try? FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                                           ofItemAtPath: url.path)
+                    savedTo = url
+                }
 
-            let alert = NSAlert()
-            alert.messageText = "Key pair created"
-            alert.informativeText = """
-                Host \(KeyPair.publicKeyFilename) so it is reachable at
+                await MainActor.run {
+                    self.domainField.stringValue = domain
+                    Preferences.domain = domain
+                    button?.isEnabled = true
+                    button?.title = "Set Up Key Hosting"
 
-                https://YOUR-DOMAIN/\(KeyPair.wellKnownPath)
+                    let alert = NSAlert()
+                    alert.messageText = reachable ? "Key hosting is ready"
+                                                  : "Key uploaded — still going live"
+                    var text = """
+                        Your public key is served at
 
-                then enter that domain above and click Register App with \
-                Tesla. Keep \(KeyPair.privateKeyFilename) safe — Teslaris \
-                never needs it.
-                """
-            alert.addButton(withTitle: "OK")
-            alert.addButton(withTitle: "Open Setup Guide")
-            if alert.runModal() == .alertSecondButtonReturn,
-               let url = URL(string: "https://simonbusborg.github.io/teslaris/#setup") {
-                NSWorkspace.shared.open(url)
+                        \(domain)
+
+                        That domain is filled in above. Use it as the \
+                        Allowed Origin when you create your Tesla developer \
+                        app, then click Register App with Tesla.
+                        """
+                    if !reachable {
+                        text += "\n\nIt isn't answering yet — this usually "
+                            + "takes a moment. Try Register in a minute."
+                    }
+                    if let savedTo {
+                        text += "\n\nYour private key (which Teslaris never "
+                            + "uses) is saved at \(savedTo.path)."
+                    }
+                    alert.informativeText = text
+                    alert.addButton(withTitle: "OK")
+                    alert.addButton(withTitle: "Open Tesla Developer Portal")
+                    if alert.runModal() == .alertSecondButtonReturn,
+                       let url = URL(string: "https://developer.tesla.com") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    button?.isEnabled = true
+                    button?.title = "Set Up Key Hosting"
+                    let alert = NSAlert()
+                    alert.messageText = "Couldn't set up key hosting"
+                    alert.informativeText = error.localizedDescription
+                        + "\n\nYou can also host the key yourself — see the "
+                        + "setup guide — and type that domain above."
+                    alert.addButton(withTitle: "OK")
+                    alert.addButton(withTitle: "Open Setup Guide")
+                    if alert.runModal() == .alertSecondButtonReturn,
+                       let url = URL(string: "https://simonbusborg.github.io/teslaris/#setup") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             }
-        } catch {
-            let alert = NSAlert()
-            alert.messageText = "Couldn't save the key pair"
-            alert.informativeText = error.localizedDescription
-            alert.runModal()
         }
     }
 
