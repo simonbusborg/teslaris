@@ -1,0 +1,21 @@
+# Teslaris key host — serves each user's Tesla public key at the
+# .well-known path Tesla requires, on a per-user subdomain of
+# weareheavy.dev. KV only (no R2): hard free-tier caps, no billing
+# surface. See src/index.js for the tiny API.
+
+name = "teslaris-key-host"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+account_id = "e433f8f5ca1a910788dd2c2fc9c2938b"
+
+routes = [
+  { pattern = "teslaris-keys.weareheavy.dev/*", zone_id = "c7fda9230f3c0155624678ec89675cb4" },
+  { pattern = "*.weareheavy.dev/.well-known/appspecific/*", zone_id = "c7fda9230f3c0155624678ec89675cb4" },
+]
+
+# KV namespace id is created once with:
+#   wrangler kv namespace create KEYS
+# and pasted here.
+kv_namespaces = [
+  { binding = "KEYS", id = "6b0891f496154a31a914892c4973f32c" },
+]
