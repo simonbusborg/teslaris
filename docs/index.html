@@ -315,13 +315,13 @@
 
 <section id="costs">
   <div class="wrap">
-    <h2>Free — by architecture, not by promise</h2>
-    <p class="lede">Tesla meters Fleet API usage in credits, and every developer account
-    gets about 5,000 free each month. Teslaris has no server and no shared key: you bring
-    your own free Tesla developer application, so the app's modest polling draws on your
-    own free credits — and the menu's gauge shows exactly where you stand. Nothing to
-    subscribe to, no card on file, and your car's data goes straight from Tesla to your
-    Mac.</p>
+    <h2>Effectively free</h2>
+    <p class="lede">Tesla meters Fleet API usage per request, and gives individual
+    developers a <strong>$10 monthly discount</strong> — enough to cover Teslaris's modest
+    polling, so the practical cost is around zero. Tesla does require a payment method on
+    the app, with a <strong>billing limit</strong> you set to cap any spend. You bring your
+    own developer application, so there's no shared key and no subscription, and your car's
+    data goes straight from Tesla to your Mac.</p>
     <div class="stats">
       <div class="stat"><div class="num">5,000<small>/mo</small></div><div class="cap">Free credits with every developer account</div></div>
       <div class="stat"><div class="num">≈3,000<small>/mo</small></div><div class="cap">Typical Teslaris usage</div></div>
@@ -519,6 +519,13 @@
               <dt>Scope</dt>
               <dd><code>vehicle_device_data</code>, and nothing else — Teslaris is
               read-only and needs no other permission.</dd>
+
+              <dt>Payment method</dt>
+              <dd>Required — under <strong>Billing and Usage</strong>, add a card and
+              <strong>set a billing limit</strong> (e.g. $10). Tesla disables an app with
+              no payment method, which shows up later as a baffling "No policy rules" error
+              at sign-in. The $10 monthly individual-developer discount covers normal use,
+              so with a billing limit set your real cost stays near zero.</dd>
             </dl>
           </details>
           <p>When you're done, keep the <strong>Client ID</strong> and <strong>Client
@@ -596,9 +603,10 @@
       while charging, 30 min asleep); the menu shows a credit gauge — the free monthly
       credit covers ~5,000 requests, shown on a progress bar that resets monthly; past
       ~84% of the credits, Teslaris stretches all polling to 30 minutes until they
-      reset; and if you never add a payment method to your Tesla developer account,
-      Tesla simply suspends API access at the credit limit instead of charging you.
-      Worst case is a paused app — never a bill.</p>
+      reset; and Tesla requires a payment method on the app with a billing limit you
+      set, which it never charges past. The $10 monthly individual-developer discount
+      covers normal use, so the practical cost is around zero — but note the payment
+      method is mandatory: without one Tesla disables the app and sign-in fails.</p>
     </details>
     <details>
       <summary>Which cars are supported?</summary>

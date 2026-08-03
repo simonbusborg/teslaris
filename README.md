@@ -148,15 +148,16 @@ Teslaris is built so spending **cannot** rocket:
   credit. It resets monthly, and no money appears in the app.
 - **A brake.** Past ~84% of the monthly credits, all polling stretches
   to 30 min until they reset, and the menu says so.
-- **A hard ceiling.** Don't add a payment method to your Tesla
-  developer account: Tesla then *suspends* API access at the credit
-  limit instead of billing you. Worst case is a paused app — never a
-  surprise bill.
+- **A billing limit.** Tesla requires a payment method on the developer
+  app (without one the app is disabled and sign-in fails). Set a **billing
+  limit** in the same place — Tesla will never charge past it, so it caps
+  any possible spend.
 
-With default use Teslaris lands around **2,000–3,500 credits a month —
-well inside the free 5,000** every developer account gets. The menu's
-"Refresh Now" is a real request (one credit); hammering it is the only
-way to burn credits meaningfully faster.
+With default use Teslaris lands around **2,000–3,500 requests a month**.
+Tesla's **$10 monthly discount for individual developers** covers that,
+so the practical cost is around **zero** — but the payment method must be
+on file for the app to work at all. The menu's "Refresh Now" is a real
+request; hammering it is the only way to spend meaningfully faster.
 
 ## License
 
