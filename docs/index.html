@@ -175,6 +175,33 @@
   .tip { margin-top: 14px; max-width: 660px; font-size: 14px; color: var(--text-gray); }
   .tip strong { color: var(--text); }
 
+  /* A calm on-ramp before the numbered steps: what this is, what it
+     asks of you, and what the app handles by itself. */
+  .setup-section .lede { margin-bottom: 30px; }
+  .primer {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 26px; margin-bottom: 22px;
+  }
+  .primer div { border-top: 2px solid var(--text); padding-top: 14px; }
+  .primer b { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .primer span { color: var(--text-gray); font-size: 14.5px; }
+  .primer-note { font-size: 14px; color: var(--text-gray); margin-bottom: 52px; max-width: 660px; }
+
+  /* Progressive disclosure inside a step: every fiddly detail is folded
+     away, so the happy path reads as four short instructions and the
+     reference material is one click from where it's needed. */
+  .step details.more {
+    border: 0; border-top: 1px solid var(--line);
+    padding: 0; margin-top: 20px; max-width: 660px;
+  }
+  .step details.more summary {
+    font-size: 14.5px; font-weight: 500; color: var(--text); padding-top: 14px;
+  }
+  .step details.more summary::after { font-size: 18px; }
+  .step details.more > *:not(summary) { margin-top: 12px; }
+  .step details.more p { color: var(--text-gray); font-size: 14.5px; max-width: 660px; }
+  .step details.more[open] { padding-bottom: 8px; }
+
   /* Tesla's form fields, spelled out — the names it uses don't match
      anything you'd guess from the app side. */
   .fields { margin-top: 18px; max-width: 660px; }
@@ -393,90 +420,128 @@
 <section class="setup-section" id="setup">
   <div class="wrap">
     <h2>One-time setup</h2>
-    <p class="lede">Four steps, about ten minutes, and you'll never touch it again.
-    Teslaris uses <strong>your own free Tesla developer application</strong> — that's why
-    it costs nothing and needs no card on file.</p>
+    <p class="lede">Tesla lets your own devices read your own car — you just have to tell
+    Tesla, once, that this Mac is allowed to ask. That's all the setup is. It's free, it
+    takes about ten minutes, and you never touch it again.</p>
+    <div class="primer">
+      <div>
+        <b>What you need</b>
+        <span>Your Tesla account and about ten minutes. No card, no command line,
+        nothing to cancel later.</span>
+      </div>
+      <div>
+        <b>What you do</b>
+        <span>Fill in one form on Tesla's own website, then copy two codes from it
+        into Teslaris.</span>
+      </div>
+      <div>
+        <b>What Teslaris does</b>
+        <span>Everything else — the security keys, the web address they live at, and
+        the registration with Tesla.</span>
+      </div>
+    </div>
+    <p class="primer-note">The four steps below are short on purpose. Anything fiddly is
+    folded away — open it only if you hit it.</p>
     <div class="steps">
       <div class="step">
         <div class="stepnum">01</div>
         <div>
-          <h3>Install and open</h3>
-          <p>Download Teslaris.dmg and drag Teslaris into <strong>Applications</strong>.</p>
-          <p>Open it — macOS blocks the first launch because the app isn't notarized yet.
-          Click <strong>Done</strong> (not "Move to Bin"), then go to
-          <strong>System&nbsp;Settings → Privacy&nbsp;&amp;&nbsp;Security</strong> and
-          click <strong>Open&nbsp;Anyway</strong>.</p>
-          <p class="tip"><strong>This happens once.</strong> After that, Teslaris opens
-          like any other app.</p>
+          <h3>Install Teslaris</h3>
+          <p>Download Teslaris.dmg, drag Teslaris into <strong>Applications</strong>, and
+          open it. It appears in your menu bar, ready for the rest of the setup.</p>
+          <details class="more">
+            <summary>macOS says it "cannot be opened"?</summary>
+            <p>Expected on first launch — the app isn't notarized by Apple yet. Click
+            <strong>Done</strong> (not "Move to Bin"), then go to
+            <strong>System&nbsp;Settings → Privacy&nbsp;&amp;&nbsp;Security</strong>,
+            scroll down and click <strong>Open&nbsp;Anyway</strong>.</p>
+            <p>This happens once. After that, Teslaris opens like any other app.</p>
+          </details>
         </div>
       </div>
       <div class="step">
         <div class="stepnum">02</div>
         <div>
-          <h3>Set up key hosting</h3>
-          <p>Tesla requires every app to register a public key, hosted on a domain — even
-          a read-only one like this. Teslaris does the whole thing itself: open
-          <strong>Settings…</strong> and click <strong>Set Up Key Hosting</strong>.</p>
-          <p>It creates the key pair on your Mac, publishes only the <em>public</em> half,
-          and fills in the domain for you. The private key never leaves your machine, and
-          a public key is public by design — Tesla downloads it unauthenticated.</p>
-          <button type="button" class="linkbtn" id="selfHostOpen">Rather host the key yourself?</button>
+          <h3>Let Teslaris create your key</h3>
+          <p>Tesla asks every app to prove its identity with a security key published on
+          the web. Teslaris does all of it for you: open <strong>Settings…</strong> and
+          click <strong>Set Up Key Hosting</strong>. Nothing to type, nothing to
+          understand.</p>
+          <p>It hands you back a web address — keep it for the next step.</p>
+          <details class="more">
+            <summary>What's actually happening here?</summary>
+            <p>Teslaris creates a key pair on your Mac and publishes only the
+            <em>public</em> half, then fills in the domain for you. The private key never
+            leaves your machine, and a public key is public by design — Tesla downloads
+            it without any authentication.</p>
+            <button type="button" class="linkbtn" id="selfHostOpen">Rather host the key yourself?</button>
+          </details>
         </div>
       </div>
       <div class="step">
         <div class="stepnum">03</div>
         <div>
-          <h3>Create your Tesla developer app</h3>
-          <p>This is the one part nobody can automate — Tesla has no API for it. Sign in at
-          <a href="https://developer.tesla.com">developer.tesla.com</a> with your Tesla
-          account and create a new application. It's free.</p>
-          <p class="tip">Two of Tesla's own requirements, easy to trip over: your Tesla
-          account needs a <strong>verified email and multi-factor authentication</strong>
-          enabled, and the <strong>application name must be unique</strong> — requests are
-          auto-rejected if the name is already taken, so pick something personal rather
-          than "Teslaris".</p>
-          <p>Tesla's form asks for these under unfamiliar names. Fill them in exactly
-          like this:</p>
-          <dl class="fields">
-            <dt>OAuth grant type</dt>
-            <dd>Authorization code <em>and</em> machine-to-machine. Teslaris needs both —
-            machine-to-machine registers the app, authorization code reads your car.
-            "Machine-to-machine only" will not work.</dd>
+          <h3>Create your free Tesla developer app</h3>
+          <p>This is the one part nobody can automate, and the only part that feels
+          technical. Sign in at <a href="https://developer.tesla.com">developer.tesla.com</a>
+          with your normal Tesla account and create a new application — it's free.</p>
+          <p>Tesla's form asks for a handful of things under unfamiliar names. Don't try to
+          work them out; just copy the answers below.</p>
+          <details class="more">
+            <summary>What to put in each field</summary>
+            <dl class="fields">
+              <dt>OAuth grant type</dt>
+              <dd>Authorization code <em>and</em> machine-to-machine. Teslaris needs both —
+              machine-to-machine registers the app, authorization code reads your car.
+              "Machine-to-machine only" will not work.</dd>
 
-            <dt>Allowed Origin URL</dt>
-            <dd>Your key domain from step 1, with <code>https://</code> in front, e.g.
-            <code>https://tesla-5422dc3b98.weareheavy.dev</code></dd>
+              <dt>Allowed Origin URL</dt>
+              <dd>The web address Teslaris gave you in step 2, with <code>https://</code>
+              in front, e.g. <code>https://tesla-5422dc3b98.weareheavy.dev</code></dd>
 
-            <dt>Allowed Redirect URI</dt>
-            <dd>Exactly this, and nothing else. It points at Teslaris on your own Mac —
-            not at your key domain:
-            <pre><button class="copy">Copy</button><code>http://localhost:8973/callback</code></pre></dd>
+              <dt>Allowed Redirect URI</dt>
+              <dd>Exactly this, and nothing else. It points at Teslaris on your own Mac —
+              not at your key domain:
+              <pre><button class="copy">Copy</button><code>http://localhost:8973/callback</code></pre></dd>
 
-            <dt>Allowed Returning URL</dt>
-            <dd>Leave it empty.</dd>
+              <dt>Allowed Returning URL</dt>
+              <dd>Leave it empty.</dd>
 
-            <dt>Scope</dt>
-            <dd><code>vehicle_device_data</code>, and nothing else — Teslaris is read-only
-            and needs no other permission.</dd>
-          </dl>
-          <p>Then note the <strong>Client ID</strong> and <strong>Client Secret</strong> —
-          they go into Settings in step 3. Select all of the field before copying: the
-          Client ID is exactly 36 characters (8-4-4-4-12), and a paste that drops the last
-          character fails later with a confusing error rather than an obvious one.</p>
-          <p class="tip">Tesla approves most applications within minutes, but it can take
-          up to a few business days. Until then the next step will fail — that's Tesla's
-          queue, not something you've done wrong.</p>
+              <dt>Scope</dt>
+              <dd><code>vehicle_device_data</code>, and nothing else — Teslaris is
+              read-only and needs no other permission.</dd>
+            </dl>
+          </details>
+          <details class="more">
+            <summary>Two things Tesla insists on, easy to trip over</summary>
+            <p>Your Tesla account needs a <strong>verified email and multi-factor
+            authentication</strong> enabled, or the application is rejected.</p>
+            <p>The <strong>application name must be unique</strong> across all of Tesla's
+            developers — requests are auto-rejected if the name is taken, so pick something
+            personal rather than "Teslaris".</p>
+          </details>
+          <p>When you're done, keep the <strong>Client ID</strong> and <strong>Client
+          Secret</strong> handy — they go into Teslaris in step 4.</p>
+          <details class="more">
+            <summary>Before you copy those two codes</summary>
+            <p>Select the whole field first. The Client ID is exactly 36 characters
+            (8-4-4-4-12), and a paste that drops the last character fails later with a
+            confusing error rather than an obvious one.</p>
+            <p>Tesla approves most applications within minutes, but it can take up to a few
+            business days. Until then the next step will fail — that's Tesla's queue, not
+            something you've done wrong.</p>
+          </details>
         </div>
       </div>
       <div class="step">
         <div class="stepnum">04</div>
         <div>
-          <h3>Let Teslaris do the rest</h3>
+          <h3>Paste the two codes, and sign in</h3>
           <p>Back in <strong>Settings…</strong>, paste your Client ID and Client Secret,
-          pick your region, and click <strong>Register App with Tesla</strong> — the app
-          performs the one-time partner registration for you.</p>
+          pick your region, and click <strong>Register App with Tesla</strong>.</p>
           <p>Then <strong>Save &amp; Sign in with Tesla…</strong> — your browser opens
-          Tesla's own login page, and you're done.</p>
+          Tesla's own login page, you approve it there, and your car appears in the menu
+          bar. That's the last of it.</p>
         </div>
       </div>
     </div>
