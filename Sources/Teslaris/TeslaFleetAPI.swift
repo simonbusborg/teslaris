@@ -111,6 +111,41 @@ final class TeslaFleetAPI: VehicleDataSource {
         ])
     }
 
+    /// A client_credentials token for one region's audience. Throws with
+    /// Tesla's own wording, which names the real problem far better than
+    /// any guess we could make.
+    private func partnerToken(clientId: String, secret: String,
+                              audience: String) async throws -> String {
+        var request = URLRequest(url: URL(string: tokenEndpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Self.formEncode([
+            "grant_type": "client_credentials",
+            "client_id": clientId,
+            "client_secret": secret,
+            "scope": "openid",
+            "audience": audience
+        ]).data(using: .utf8)
+
+        let (data, response) = try await session.data(for: request)
+        let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let token = body?["access_token"] as? String
+        else {
+            let code = body?["error"] as? String ?? ""
+            if code == "client_not_found" {
+                throw TeslarisError.authenticationFailed(
+                    "Tesla doesn't recognise that Client ID. It should be 36 "
+                    + "characters (8-4-4-4-12) — check none is missing.")
+            }
+            let detail = body?["error_description"] as? String ?? code
+            throw TeslarisError.authenticationFailed(
+                detail.isEmpty ? "couldn't get a partner token — check Client ID and Secret"
+                               : "Tesla says: \(detail)")
+        }
+        return token
+    }
+
     /// One-time partner-account registration with Tesla — replaces the
     /// curl step from the old setup guide. Uses a client_credentials
     /// token (the developer app itself, not the user session), so it
@@ -122,35 +157,30 @@ final class TeslaFleetAPI: VehicleDataSource {
               let secret = try? Keychain.readClientSecret(), !secret.isEmpty
         else { throw TeslarisError.notConfigured }
 
-        var request = URLRequest(url: URL(string: tokenEndpoint)!)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = Self.formEncode([
-            "grant_type": "client_credentials",
-            "client_id": clientId,
-            "client_secret": secret,
-            "scope": "openid",
-            "audience": Preferences.region.apiBase
-        ]).data(using: .utf8)
-        let (data, response) = try await session.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200,
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let token = json["access_token"] as? String
-        else {
-            // Tesla names the actual problem; pass it on rather than
-            // guessing. client_not_found in particular means the ID is
-            // wrong or incomplete, which a generic message hides.
-            let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-            let code = body?["error"] as? String ?? ""
-            if code == "client_not_found" {
-                throw TeslarisError.authenticationFailed(
-                    "Tesla doesn't recognise that Client ID. It should be 36 "
-                    + "characters (8-4-4-4-12) — check none is missing.")
+        // Tesla provisions an application per region, and rejects the
+        // audience of any other one. Rather than make that the user's
+        // puzzle, try the configured region first and fall back to the
+        // rest — then remember whichever Tesla accepted.
+        var regions = [Preferences.region]
+        regions += Region.allCases.filter { $0 != Preferences.region }
+
+        var token: String?
+        var lastFailure: Error?
+        for region in regions {
+            do {
+                token = try await partnerToken(clientId: clientId, secret: secret,
+                                               audience: region.apiBase)
+                if region != Preferences.region {
+                    debugLog("region \(Preferences.region.rawValue) rejected; using \(region.rawValue)")
+                    Preferences.region = region
+                }
+                break
+            } catch {
+                lastFailure = error
             }
-            let detail = body?["error_description"] as? String ?? code
-            throw TeslarisError.authenticationFailed(
-                detail.isEmpty ? "couldn't get a partner token — check Client ID and Secret"
-                               : "Tesla says: \(detail)")
+        }
+        guard let token else {
+            throw lastFailure ?? TeslarisError.authenticationFailed("couldn't get a partner token")
         }
 
         var registration = URLRequest(url: URL(string: "\(apiBase)/api/1/partner_accounts")!)
