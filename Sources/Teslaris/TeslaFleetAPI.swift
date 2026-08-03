@@ -307,19 +307,31 @@ final class TeslaFleetAPI: VehicleDataSource {
 
     // MARK: - OAuth callback listener
 
+    /// The listener from the current sign-in, so a new attempt can tear
+    /// down one an earlier attempt leaked — SO_REUSEADDR does not let two
+    /// *active* listeners share a port, so retrying while a prior one is
+    /// still alive failed with "Address already in use".
+    private static var activeListener: NWListener?
+
     /// One-shot HTTP listener on localhost that catches the OAuth redirect,
     /// answers with a tiny "you can close this tab" page, and returns the code.
     static func waitForCallback(expectedState: String,
                                 port: UInt16 = callbackPort,
                                 timeout: TimeInterval = 300) async throws -> String {
-        // Allow reuse so a listener leaked by an abandoned sign-in (the
-        // browser closed before any callback arrived) doesn't keep the
-        // port bound — that surfaced as "Address already in use".
+        // Kill any listener a previous, still-suspended sign-in is
+        // holding before binding — otherwise a second attempt collides
+        // with the first's live socket.
+        activeListener?.cancel()
+
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
         let listener = try NWListener(using: parameters,
                                       on: NWEndpoint.Port(rawValue: port)!)
-        defer { listener.cancel() }
+        activeListener = listener
+        defer {
+            listener.cancel()
+            if activeListener === listener { activeListener = nil }
+        }
 
         return try await withCheckedThrowingContinuation { continuation in
             var finished = false
