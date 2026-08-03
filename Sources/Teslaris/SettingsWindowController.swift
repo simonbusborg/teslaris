@@ -37,7 +37,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.onRegister = onRegister
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 300),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 300),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -69,9 +69,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         // Editable text fields have no useful intrinsic width; without one,
         // the grid hands the window's spare width to the label column and
         // the whole form ends up shoved against the right edge.
+        // Wide enough for a full 36-character Tesla client ID in the
+        // monospaced face below — at 270pt a pasted UUID scrolled out of
+        // sight and looked truncated. Monospaced also makes these
+        // opaque strings checkable character by character.
         for field in [clientIdField, clientSecretField, domainField] {
             field.translatesAutoresizingMaskIntoConstraints = false
-            field.widthAnchor.constraint(equalToConstant: 270).isActive = true
+            field.widthAnchor.constraint(equalToConstant: 340).isActive = true
+            field.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         }
 
         regionPopup.removeAllItems()
@@ -85,7 +90,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guideLink.font = .systemFont(ofSize: 11)
         guideLink.textColor = .secondaryLabelColor
         guideLink.lineBreakMode = .byWordWrapping
-        guideLink.preferredMaxLayoutWidth = 270
+        guideLink.preferredMaxLayoutWidth = 340
 
         let generateKeysButton = NSButton(title: "Set Up Key Hosting",
                                          target: self, action: #selector(generateKeysAction))
@@ -152,7 +157,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             buttons.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -20)
         ])
 
-        window?.setContentSize(NSSize(width: 440, height: content.fittingSize.height))
+        window?.setContentSize(NSSize(width: 520, height: content.fittingSize.height))
     }
 
     private func label(_ text: String) -> NSTextField {
