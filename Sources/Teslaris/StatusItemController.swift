@@ -59,22 +59,22 @@ final class StatusItemController {
 
     func render(data: VehicleData?, error: String?, authenticated: Bool) {
         lastRender = (data, error, authenticated)
-        let (symbol, tint) = Self.icon(for: data)
+        let symbol = Self.icon(for: data)
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Teslaris")
-        statusItem.button?.contentTintColor = tint
         statusItem.button?.title = " " + barTitle(for: data)
         statusItem.menu = buildMenu(data: data, error: error)
     }
 
-    /// Menu bar icon by car state: green bolted car while charging, bolted
-    /// car when plugged in but not charging, plain car when unplugged —
-    /// orange if the battery is low on top of that.
-    static func icon(for data: VehicleData?) -> (symbol: String, tint: NSColor?) {
-        guard let data else { return ("car", nil) }
-        if data.isCharging { return ("bolt.car.fill", .systemGreen) }
-        if data.isPluggedIn == true { return ("bolt.car", nil) }
-        if data.batteryPercentage <= 20 { return ("car", .systemOrange) }
-        return ("car", nil)
+    /// Menu bar icon by car state: filled bolted car while charging, bolted
+    /// car when plugged in but not charging, plain car when unplugged.
+    /// Always a template image with no tint, so it follows the menu bar's
+    /// appearance like the clock — tints render muddy through menu bar
+    /// vibrancy and go near-invisible on a dark menu bar.
+    static func icon(for data: VehicleData?) -> String {
+        guard let data else { return "car" }
+        if data.isCharging { return "bolt.car.fill" }
+        if data.isPluggedIn == true { return "bolt.car" }
+        return "car"
     }
 
     private func barTitle(for data: VehicleData?) -> String {

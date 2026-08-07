@@ -86,15 +86,14 @@ final class FormattingTests: XCTestCase {
                         vehicleName: nil, vin: nil, odometerKm: nil,
                         isAsleep: false, lastUpdated: Date())
         }
-        var icon = StatusItemController.icon(for: vehicle(state: "Charging", battery: 15))
-        XCTAssertEqual(icon.symbol, "bolt.car.fill"); XCTAssertEqual(icon.tint, .systemGreen)
-        icon = StatusItemController.icon(for: vehicle(state: "Stopped", battery: 15))
-        XCTAssertEqual(icon.symbol, "bolt.car"); XCTAssertNil(icon.tint)
-        icon = StatusItemController.icon(for: vehicle(state: "Disconnected", battery: 15))
-        XCTAssertEqual(icon.symbol, "car"); XCTAssertEqual(icon.tint, .systemOrange)
-        icon = StatusItemController.icon(for: vehicle(state: "Disconnected", battery: 80))
-        XCTAssertEqual(icon.symbol, "car"); XCTAssertNil(icon.tint)
-        icon = StatusItemController.icon(for: nil)
-        XCTAssertEqual(icon.symbol, "car"); XCTAssertNil(icon.tint)
+        XCTAssertEqual(StatusItemController.icon(for: vehicle(state: "Charging", battery: 15)),
+                       "bolt.car.fill")
+        XCTAssertEqual(StatusItemController.icon(for: vehicle(state: "Stopped", battery: 15)),
+                       "bolt.car")
+        XCTAssertEqual(StatusItemController.icon(for: vehicle(state: "Disconnected", battery: 15)),
+                       "car")
+        XCTAssertEqual(StatusItemController.icon(for: vehicle(state: "Disconnected", battery: 80)),
+                       "car")
+        XCTAssertEqual(StatusItemController.icon(for: nil), "car")
     }
 }
