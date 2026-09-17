@@ -1,5 +1,6 @@
 APP     = Teslaris.app
-BINARY  = .build/release/Teslaris
+# Universal builds land under .build/apple, not .build/release.
+BINARY  = .build/apple/Products/Release/Teslaris
 DMG     = Teslaris.dmg
 
 # Code-signing identity. Default "-" is ad-hoc (local builds); CI passes a
@@ -8,15 +9,21 @@ IDENTITY ?= -
 
 .PHONY: build app dmg run test mock clean release
 
-## Build the release binary
+## Build the release binary as a universal (Apple silicon + Intel) binary.
+## CI runs on an arm64 runner, so a plain `swift build` ships an arm64-only
+## app that Intel Macs refuse to launch — the icon gets the prohibitory
+## overlay and looks like a Gatekeeper block. TeslarisShared is a static
+## library target, linked into this one binary; the bundle gains no files.
 build:
-	swift build -c release
+	swift build -c release --arch arm64 --arch x86_64
 
 ## Assemble a proper .app bundle (needed for launch-at-login) and sign it
 app: build
 	rm -rf $(APP)
 	mkdir -p $(APP)/Contents/MacOS $(APP)/Contents/Resources
 	cp $(BINARY) $(APP)/Contents/MacOS/Teslaris
+	# Fail here, not on an Intel Mac, if the build ever stops being universal.
+	lipo $(APP)/Contents/MacOS/Teslaris -verify_arch arm64 x86_64
 	cp Resources/Info.plist $(APP)/Contents/Info.plist
 	cp Resources/Teslaris.icns $(APP)/Contents/Resources/Teslaris.icns
 ifeq ($(IDENTITY),-)
@@ -39,9 +46,11 @@ dmg:
 	rm -rf dmg-staging
 	@echo "Done → $(DMG)"
 
-## Quick run without a bundle (launch-at-login disabled in this mode)
+## Quick run without a bundle (launch-at-login disabled in this mode).
+## Named explicitly so adding another executable target can't make it
+## ambiguous.
 run:
-	swift run
+	swift run Teslaris
 
 test:
 	swift test

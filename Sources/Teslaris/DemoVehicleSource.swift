@@ -3,9 +3,10 @@
 //  Teslaris
 //
 //  A scripted VehicleDataSource: plays a full day-in-the-life timeline
-//  (parked → plugged in → charging → complete → unplugged → asleep) one
-//  step per fetch, so the whole UI can be exercised — and screenshotted
-//  honestly — with no Tesla account at all.
+//  (parked → driven low → plugged in → charging → complete → unplugged →
+//  asleep) one step per fetch, so the whole UI — the low-battery reminder
+//  included — can be exercised, and screenshotted honestly, with no Tesla
+//  account at all.
 //
 //  Enable with:  defaults write com.weareheavy.teslaris debug_demo_mode -bool YES
 //
@@ -29,11 +30,12 @@ final class DemoVehicleSource: VehicleDataSource {
         defer { step += 1 }
         let timeline: [(state: String, battery: Double, power: Int?, minutes: Int?, asleep: Bool)] = [
             ("Disconnected", 62, nil, nil, false),
-            ("Disconnected", 61, nil, nil, false),
-            ("Stopped",      61, nil, nil, false),   // plugged in, waiting
-            ("Charging",     62, 11, 138, false),
-            ("Charging",     68, 11, 102, false),
-            ("Charging",     75, 11, 66,  false),
+            ("Disconnected", 41, nil, nil, false),   // after a drive
+            ("Disconnected", 19, nil, nil, false),   // below the default low-battery threshold
+            ("Stopped",      19, nil, nil, false),   // plugged in, waiting
+            ("Charging",     20, 11, 280, false),
+            ("Charging",     42, 11, 190, false),
+            ("Charging",     64, 11, 100, false),
             ("Charging",     84, 11, 30,  false),
             ("Complete",     90, nil, nil, false),
             ("Disconnected", 90, nil, nil, false),

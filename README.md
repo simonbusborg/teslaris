@@ -39,9 +39,9 @@ also works. This happens once.
 ## Features
 
 - Battery %, range (km/mi), charging status, charging power, charge limit
-  and time-to-full — refreshed every 15 minutes when parked; while
-  charging the cadence scales with time-to-full (5 min → 1 min as the
-  charge finishes)
+  and time-to-full — refreshed every 15 minutes when parked (choose 1–15
+  minutes in Settings); while charging the cadence scales with
+  time-to-full (5 min → 1 min as the charge finishes)
 - Cabin and outside temperature (in the car's own °C/°F setting),
   door-lock and Sentry Mode status, a warning when a window, door, frunk
   or trunk is left open, and pending software updates — all from the same
@@ -51,7 +51,9 @@ also works. This happens once.
   are auto-detected; combinations the renderer doesn't support fall back
   to a neutral white car of the right model. To force exact options:
   `defaults write com.weareheavy.teslaris car_image_options '$MTY13,$PRED,$WY20P,$INPB0'`
-- Notifications when charging starts, completes, or the charger loses power
+- Notifications when charging starts, completes, or the charger loses power,
+  and a reminder to plug in when the battery drops below a threshold you
+  choose (5–50%, default 20%) — once per discharge, not on every refresh
 - Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit
   and battery) — the menu shows the last known data, marked as such
 - Choose what the menu bar shows; the icon reflects charging state
@@ -132,7 +134,9 @@ The full guide with copy-paste blocks lives at
 
 ## Build from source
 
-Requires macOS 13+ and the Xcode Command Line Tools.
+Requires macOS 13+ and the Xcode Command Line Tools. `make app` builds a
+universal binary (Apple silicon and Intel), so the first build compiles
+everything twice.
 
 ```bash
 git clone https://github.com/simonbusborg/teslaris
@@ -148,7 +152,9 @@ runs the suite (no Tesla account needed — everything is fixture-driven).
 
 Teslaris is built so spending **cannot** rocket:
 
-- **Adaptive polling.** Parked: every 15 min. Charging: every 5 min,
+- **Adaptive polling.** Parked: every 15 min by default — Settings offers
+  1–15 min, and a faster pace costs proportionally more (every minute is
+  ~1,440 credits a day, and keeps the car from sleeping). Charging: every 5 min,
   tightening to 1 min only for the final stretch — so an overnight
   charge costs ~100 credits, not ~500. A sleeping car is polled every
   30 min and never woken.

@@ -5,23 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teslaris — Your Tesla, in the menu bar</title>
 <meta name="description" content="A tiny native macOS menu bar app for your Tesla: battery, range and charging status. Pure AppKit, no subscriptions, your data stays between your Mac and Tesla. Not affiliated with Tesla.">
+<link rel="canonical" href="https://simonbusborg.github.io/teslaris/">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17181c" media="(prefers-color-scheme: dark)">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Teslaris">
+<meta property="og:title" content="Teslaris — Your Tesla, in the menu bar">
+<meta property="og:description" content="A tiny native macOS menu bar app for your Tesla: battery, range and charging status. Read-only, open source, not affiliated with Tesla.">
+<meta property="og:url" content="https://simonbusborg.github.io/teslaris/">
+<meta property="og:image" content="https://simonbusborg.github.io/teslaris/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Teslaris app icon beside the line: Your Tesla, in the menu bar.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Teslaris — Your Tesla, in the menu bar">
+<meta name="twitter:description" content="A tiny native macOS menu bar app for your Tesla: battery, range and charging status. Read-only, open source, not affiliated with Tesla.">
+<meta name="twitter:image" content="https://simonbusborg.github.io/teslaris/og.png">
+<meta name="twitter:image:alt" content="The Teslaris app icon beside the line: Your Tesla, in the menu bar.">
+
 <link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+  // Inline and blocking on purpose: a stored theme has to be on <html>
+  // before the first paint, otherwise a dark visitor gets a white flash.
+  try {
+    var t = localStorage.getItem('teslaris-theme');
+    if (t === 'dark' || t === 'light') {
+      document.documentElement.dataset.theme = t;
+      // The browser chrome follows the page, not the system, once chosen.
+      var tc = document.querySelectorAll('meta[name="theme-color"]');
+      for (var i = 0; i < tc.length; i++) tc[i].content = t === 'dark' ? '#17181c' : '#ffffff';
+    }
+  } catch (e) {
+    // Safari in private mode throws on localStorage; the system preference
+    // still applies, so there is nothing to recover from.
+  }
+  // Chromium is the only engine that runs an SVG displacement filter inside
+  // backdrop-filter — Safari and Firefox drop the whole declaration. The
+  // refraction is therefore opt-in by class; everyone else keeps the plain
+  // frosted blur declared first. UA-sniffed because @supports cannot tell
+  // "parses" from "actually renders" here.
+  if (/Chrom(e|ium)/.test(navigator.userAgent)) document.documentElement.classList.add('liquid');
+</script>
 <style>
   :root {
+    color-scheme: light;
+    --bg: #fff;
     --text: #171a20;
     --text-gray: #5c5e62;
-    --text-faint: #a2a3a5;
+    /* Darker than tesla.com's #a2a3a5, which fails contrast for the small
+       captions it is used on. */
+    --text-faint: #737579;
     --card: #f4f4f4;
+    --card-hover: #eaeaea;
+    --tint: rgba(23, 26, 32, 0.07);
+    --hover: rgba(23, 26, 32, 0.06);
     --dark: #171a20;
     --dark-text-gray: #8e8e93;
     --line: rgba(23, 26, 32, 0.1);
     --line-dark: rgba(255, 255, 255, 0.15);
+    --glass: rgba(255, 255, 255, 0.6);
+    --glass-over-dark: rgba(23, 26, 32, 0.6);
+    /* Near-opaque: the sheet's top edge refracts the dark banner below the
+       bar, and a thinner tint let that wash over the first link. */
+    --sheet: rgba(255, 255, 255, 0.92);
+    --banner-bg: #171a20;
+    --section-edge: transparent;
+    --dialog-bg: #fff;
+    --dialog-pre: #f4f4f4;
+    --dialog-copy: #fff;
+    --backdrop: rgba(23, 26, 32, 0.55);
+    --dither: #171a20;
+    --dither-opacity: 0.1;
+    --focus: #171a20;
+    --moon: block;
+    --sun: none;
     --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
   }
+  /* The dark palette is declared twice — once for the system preference,
+     once for an explicit choice — because a media query can't be switched
+     on by an attribute. Keep the two blocks identical. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181c; --text: #f4f4f4; --text-gray: #a4a6aa; --text-faint: #8a8c91;
+      --card: #222429; --card-hover: #2c2e33;
+      --tint: rgba(255, 255, 255, 0.09); --hover: rgba(255, 255, 255, 0.1);
+      --dark: #f4f4f4;
+      --line: rgba(255, 255, 255, 0.1);
+      --glass: rgba(23, 24, 28, 0.6); --glass-over-dark: rgba(0, 0, 0, 0.6);
+      --sheet: rgba(34, 36, 41, 0.94);
+      --banner-bg: #2a2c31; --section-edge: rgba(255, 255, 255, 0.08);
+      --dialog-bg: #222429; --dialog-pre: #17181c; --dialog-copy: #2c2e33;
+      --backdrop: rgba(0, 0, 0, 0.6);
+      --dither: #fff; --dither-opacity: 0.07;
+      --focus: #fff; --moon: none; --sun: block;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181c; --text: #f4f4f4; --text-gray: #a4a6aa; --text-faint: #8a8c91;
+    --card: #222429; --card-hover: #2c2e33;
+    --tint: rgba(255, 255, 255, 0.09); --hover: rgba(255, 255, 255, 0.1);
+    --dark: #f4f4f4;
+    --line: rgba(255, 255, 255, 0.1);
+    --glass: rgba(23, 24, 28, 0.6); --glass-over-dark: rgba(0, 0, 0, 0.6);
+    --sheet: rgba(34, 36, 41, 0.94);
+    --banner-bg: #2a2c31; --section-edge: rgba(255, 255, 255, 0.08);
+    --dialog-bg: #222429; --dialog-pre: #17181c; --dialog-copy: #2c2e33;
+    --backdrop: rgba(0, 0, 0, 0.6);
+    --dither: #fff; --dither-opacity: 0.07;
+    --focus: #fff; --moon: none; --sun: block;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  /* Anchors land below the sticky bar instead of under it. */
+  html { scroll-padding-top: 56px; }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
   body {
-    background: #fff;
+    background: var(--bg);
     color: var(--text);
     font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -30,33 +137,95 @@
   .wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
   .narrow { max-width: 760px; }
 
+  /* One focus ring for everything, in the text colour of whatever it sits
+     on — dark surfaces flip --focus to white. */
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  .skip {
+    position: absolute; left: 12px; top: -48px; z-index: 30;
+    background: var(--text); color: var(--bg); text-decoration: none;
+    font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 4px;
+  }
+  .skip:focus { top: 8px; }
+  /* The skip target takes focus only so the next Tab starts there. */
+  main:focus { outline: none; }
+
   /* ---- nav ----
      Smoked glass that inverts with the section behind it, the way
      tesla.com's header does: dark text over light content, white text
      over the dark section. One fixed tint can't stay legible on both. */
   nav {
     position: sticky; top: 0; z-index: 10;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(16px);
+    /* Clips the glass's overhang below; x only, so the burger sheet can
+       still hang beneath the bar. */
+    overflow-x: clip;
     color: var(--text);
-    transition: background 0.25s ease, color 0.25s ease;
+    transition: color 0.25s ease;
   }
-  nav.over-dark {
-    background: rgba(23, 26, 32, 0.6);
-    color: #fff;
+  /* The glass lives on a pseudo-element, not on the nav itself: an element
+     with a backdrop-filter becomes the backdrop root for its children, and
+     the burger sheet inside it would then have nothing to blur. */
+  /* It also runs 96px past both window edges: the refraction bends a band
+     along each end of the box, and on a full-width bar that band would
+     otherwise sample nothing and tint the corners. The nav clips it. */
+  nav::before {
+    content: ""; position: absolute; inset: 0 -96px; z-index: -1;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    transition: background 0.25s ease;
   }
+  /* Liquid glass, Chromium only (the .liquid gate is set in the head): the
+     backdrop is bent through a displacement map before it is blurred, so
+     what scrolls under the bar's lower edge refracts instead of just
+     frosting. No saturate, unlike Polaris — the glass stays neutral. */
+  html.liquid nav::before {
+    -webkit-backdrop-filter: url(#liquidGlass) blur(8px);
+    backdrop-filter: url(#liquidGlass) blur(8px);
+  }
+  nav.over-dark { color: #fff; --focus: #fff; }
+  nav.over-dark::before { background: var(--glass-over-dark); }
   nav .wrap { display: flex; align-items: center; height: 56px; }
   .wordmark {
     font-size: 15px; font-weight: 600; letter-spacing: 0.42em;
     text-transform: uppercase; text-decoration: none; margin-right: auto;
   }
-  nav .links { display: flex; gap: 8px; }
+  nav .links { display: flex; align-items: center; gap: 8px; }
   nav .links a {
     font-size: 14px; font-weight: 500; text-decoration: none;
     padding: 6px 14px; border-radius: 4px;
   }
-  nav .links a:hover { background: rgba(23, 26, 32, 0.06); }
-  nav.over-dark .links a:hover { background: rgba(255, 255, 255, 0.14); }
+  nav .links a:hover, .theme-toggle:hover { background: var(--hover); }
+  nav.over-dark .links a:hover, nav.over-dark .theme-toggle:hover { background: rgba(255, 255, 255, 0.14); }
+
+  .theme-toggle {
+    display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+    width: 34px; height: 34px; border: 0; border-radius: 4px;
+    background: none; color: inherit; cursor: pointer; font: inherit;
+  }
+  .theme-toggle svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  .theme-toggle .moon { display: var(--moon); }
+  .theme-toggle .sun { display: var(--sun); }
+  .theme-label { display: none; }
+
+  /* Three rules that fold into a cross; only shown on phones. */
+  .burger {
+    display: none; position: relative; width: 40px; height: 40px;
+    border: 0; border-radius: 4px; background: none; color: inherit; cursor: pointer;
+    align-items: center; justify-content: center;
+  }
+  .burger i {
+    position: absolute; width: 18px; height: 1.5px; background: currentColor;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+  }
+  .burger i:nth-child(1) { transform: translateY(-5px); }
+  .burger i:nth-child(3) { transform: translateY(5px); }
+  nav.open .burger i:nth-child(1) { transform: rotate(45deg); }
+  nav.open .burger i:nth-child(2) { opacity: 0; }
+  nav.open .burger i:nth-child(3) { transform: rotate(-45deg); }
 
   /* ---- buttons ---- */
   .btn {
@@ -64,16 +233,16 @@
     padding: 9px 24px; border-radius: 4px; font-size: 14px; font-weight: 500;
     text-decoration: none; transition: opacity 0.2s, background 0.2s;
   }
-  .btn-dark { background: var(--dark); color: #fff; }
+  .btn-dark { background: var(--dark); color: var(--bg); }
   .btn-dark:hover { opacity: 0.9; }
   .btn-light { background: var(--card); color: var(--text); }
-  .btn-light:hover { background: #eaeaea; }
+  .btn-light:hover { background: var(--card-hover); }
 
   /* ---- development banner ----
      Stated plainly rather than tucked away: the app cannot be set up
      yet, and nobody should download it expecting it to work. */
   .devbanner {
-    background: var(--text); color: #fff;
+    background: var(--banner-bg); color: #fff; --focus: #fff;
     font-size: 14px; line-height: 1.5; padding: 14px 0;
   }
   .devbanner strong { font-weight: 600; }
@@ -85,10 +254,12 @@
   .cta { margin-top: 28px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
   header .fineprint { margin-top: 18px; font-size: 12px; color: var(--text-faint); }
   /* The compositor render letterboxes the car in transparent space —
-     crop to the middle band so the layout doesn't inherit the padding. */
+     crop to the middle band so the layout doesn't inherit the padding.
+     bkba_opt=1 is what makes it a transparent PNG rather than a JPEG on
+     white, so it sits on the dark page without a box around it. */
   .hero-car {
     display: block; width: min(1080px, 94%); margin: 28px auto 0;
-    aspect-ratio: 720 / 270; object-fit: cover; object-position: center 45%;
+    height: auto; aspect-ratio: 720 / 270; object-fit: cover; object-position: center 45%;
   }
   header .caption { font-size: 12px; color: var(--text-faint); padding: 8px 32px 56px; }
 
@@ -97,6 +268,18 @@
   h2 { font-size: clamp(28px, 3.6vw, 40px); font-weight: 600; letter-spacing: -0.015em; margin-bottom: 12px; }
   .lede { color: var(--text-gray); font-size: 16px; max-width: 820px; margin-bottom: 44px; }
   .lede strong { color: var(--text); font-weight: 600; }
+
+  /* ---- dither field ----
+     A slow Bayer-dithered noise drawn by WebGL, in the text colour at low
+     opacity: texture, not decoration. Faded out at the edges so it has no
+     cut line. No WebGL, no field — the section's own background stands. */
+  .has-field { position: relative; isolation: isolate; overflow: hidden; }
+  .field {
+    position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%;
+    pointer-events: none; color: var(--dither); opacity: var(--dither-opacity);
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+    mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  }
 
   /* ---- stat row ---- */
   #costs { text-align: center; }
@@ -114,41 +297,116 @@
   .card svg { width: 40px; height: 40px; stroke: var(--text); fill: none; stroke-width: 1.6; margin-bottom: 22px; }
   .card h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
   .card p { color: var(--text-gray); font-size: 14.5px; }
-  .card code { font-family: var(--mono); font-size: 0.85em; background: rgba(23,26,32,0.07); padding: 1px 5px; border-radius: 3px; }
+  .card code { font-family: var(--mono); font-size: 0.85em; background: var(--tint); padding: 1px 5px; border-radius: 3px; }
 
-  /* ---- dark menu/specs section ---- */
-  .dark-section { background: #000; color: #fff; }
+  /* ---- dark menu/specs section ----
+     Black in both themes. On the dark page a hairline keeps it reading as
+     its own space rather than a slightly darker patch. */
+  .dark-section {
+    background: #000; color: #fff; --focus: #fff; --dither: #fff;
+    border-top: 1px solid var(--section-edge); border-bottom: 1px solid var(--section-edge);
+  }
   .dark-section h2 { color: #fff; }
   .dark-section .lede { color: var(--dark-text-gray); }
-  .dark-grid { display: flex; gap: 72px; align-items: flex-start; flex-wrap: wrap; }
+  #menu { padding: 0; }
+
+  /* The menu stage. On a roomy desktop it is a scroll budget: the inner
+     box pins under the bar and the four states are dealt out over the
+     stage's height. Everywhere else it is an ordinary block and the tabs
+     switch state. The same query lives in the script. */
+  .menu-stage { position: relative; }
+  .menu-sticky { position: relative; isolation: isolate; overflow: hidden; padding: 88px 0; }
+  @media (min-width: 901px) and (min-height: 780px) and (prefers-reduced-motion: no-preference) {
+    .menu-stage { height: 400vh; }
+    .menu-sticky {
+      position: sticky; top: 0; height: 100vh; padding: 56px 0 0;
+      display: flex; align-items: center;
+    }
+    .menu-sticky > .wrap { width: 100%; }
+    .hint-tap { display: none; }
+  }
+  @media not all and (min-width: 901px) and (min-height: 780px) and (prefers-reduced-motion: no-preference) {
+    .hint-scroll { display: none; }
+  }
+  /* Behind the menu, not the copy: the field fades in from the left so the
+     paragraphs stay on plain black. */
+  .menu-sticky .field {
+    opacity: 0.2;
+    -webkit-mask-image: linear-gradient(90deg, transparent 25%, #000 75%);
+    mask-image: linear-gradient(90deg, transparent 25%, #000 75%);
+  }
+  .menu-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 72px; align-items: center; }
+  .menu-copy .lede { margin-bottom: 20px; }
+  .menu-hint { color: rgba(255, 255, 255, 0.55); font-size: 14px; margin-bottom: 28px; }
+
+  .states {
+    display: inline-flex; gap: 2px; padding: 3px; border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1); max-width: 100%;
+  }
+  .states button {
+    border: 0; border-radius: 4px; background: none; color: rgba(255, 255, 255, 0.75);
+    font: inherit; font-size: 14px; font-weight: 500; padding: 6px 16px; cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .states button:hover { color: #fff; }
+  .states button[aria-selected="true"] { background: #fff; color: #171a20; }
+  .states button:focus-visible { outline-offset: 1px; }
+  .state-note { margin-top: 18px; max-width: 460px; min-height: 3.2em; color: var(--dark-text-gray); font-size: 14.5px; }
+
+  /* The mock: a sliver of the menu bar with the Teslaris item lit, and the
+     menu under it. Both are glass over the dither field. */
+  .mock { min-height: 700px; }
+  .mbar {
+    display: flex; justify-content: flex-end; align-items: center; gap: 14px;
+    height: 28px; padding: 0 8px; margin-bottom: 6px; border-radius: 6px;
+    font-size: 13px; color: #fff; font-variant-numeric: tabular-nums;
+    background: rgba(40, 42, 48, 0.5); border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  }
+  .mbar .on {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.2);
+  }
+  .mbar svg { width: 20px; height: 14px; display: block; }
+  .mbar .dim { opacity: 0.85; }
   .menu-card {
-    flex: 0 1 330px; max-width: 100%; background: #23262c;
-    border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
-    padding: 10px 0; font-size: 13.5px;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.5);
+    background: rgba(32, 34, 39, 0.74);
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;
+    padding: 6px 0; font-size: 13px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  }
+  html.liquid .mbar, html.liquid .menu-card {
+    -webkit-backdrop-filter: url(#liquidGlass) blur(8px);
+    backdrop-filter: url(#liquidGlass) blur(8px);
   }
   .menu-card img.car {
-    width: min(290px, 94%); display: block; margin: 4px auto 10px;
-    aspect-ratio: 720 / 300; object-fit: cover; object-position: center 45%;
+    width: min(290px, 94%); display: block; margin: 2px auto 4px;
+    height: auto; aspect-ratio: 720 / 300; object-fit: cover; object-position: center 45%;
   }
-  .mrow { display: flex; justify-content: space-between; padding: 3px 16px; }
+  .mrow {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    height: 22px; padding: 0 14px; white-space: nowrap;
+  }
   .mrow .k { color: var(--dark-text-gray); }
-  .mrow .v { font-variant-numeric: tabular-nums; }
-  .mrow.title { font-weight: 600; font-size: 14px; }
-  .msep { height: 1px; background: rgba(255,255,255,0.09); margin: 7px 12px; }
-  .bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.12); margin: 5px 16px 7px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 68%; background: #30d158; }
-  .mrow.action { padding: 4px 16px; }
-  .mrow.action .kbd { color: rgba(255,255,255,0.4); }
+  .mrow .v { font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
+  .mrow.title { font-weight: 600; height: 26px; }
+  .mrow.info { color: rgba(255, 255, 255, 0.36); }
+  .msep { height: 1px; background: rgba(255, 255, 255, 0.09); margin: 5px 12px; }
+  .bar { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); margin: 4px 14px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 3px; }
+  .mrow.action .kbd { color: rgba(255, 255, 255, 0.4); }
+  .mock-live.swap { animation: swap 0.28s ease; }
+  @keyframes swap { from { opacity: 0.35; } to { opacity: 1; } }
 
-  .specs { flex: 1 1 420px; }
+  .specs-wrap { padding-top: 24px; padding-bottom: 88px; }
   .specs h3 { font-size: 17px; font-weight: 600; margin: 0 0 24px; }
   .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 28px 24px; }
   .spec .k { color: var(--dark-text-gray); font-size: 13.5px; }
   .spec .v { font-weight: 600; font-size: 15px; margin-top: 2px; }
   .spec .v code { font-family: var(--mono); font-size: 13px; font-weight: 500; }
   .spec-rule { height: 1px; background: var(--line-dark); margin: 32px 0; }
-  .dark-note { margin-top: 40px; font-size: 12.5px; color: rgba(255,255,255,0.35); }
+  .dark-note { margin-top: 40px; font-size: 12.5px; color: rgba(255,255,255,0.5); }
 
   /* ---- setup ---- */
   .setup-section { background: var(--card); }
@@ -165,11 +423,11 @@
   .step a { color: var(--text); }
   p code, .step code {
     font-family: var(--mono); font-size: 0.85em;
-    background: rgba(23,26,32,0.07); padding: 1px 6px; border-radius: 3px;
+    background: var(--tint); padding: 1px 6px; border-radius: 3px;
   }
   pre {
     position: relative; margin-top: 16px; padding: 18px 20px; max-width: 660px;
-    background: #fff; border-radius: 8px;
+    background: var(--bg); border-radius: 8px;
     font-family: var(--mono); font-size: 13px; line-height: 1.6;
     overflow-x: auto; color: var(--text);
   }
@@ -241,16 +499,16 @@
        centres a modal dialog — restore it. */
     margin: auto;
     max-width: 620px; width: calc(100% - 48px); padding: 40px;
-    border: 0; border-radius: 10px; background: #fff; color: var(--text);
+    border: 0; border-radius: 10px; background: var(--dialog-bg); color: var(--text);
     box-shadow: 0 40px 90px rgba(0, 0, 0, 0.28);
   }
-  dialog::backdrop { background: rgba(23, 26, 32, 0.55); backdrop-filter: blur(3px); }
-  dialog h3 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; }
+  dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(3px); }
+  dialog h3 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; padding-right: 32px; }
   dialog p { color: var(--text-gray); font-size: 15px; }
   dialog p + pre { margin-top: 14px; }
   dialog pre + p { margin-top: 22px; }
-  dialog pre { background: var(--card); max-width: none; }
-  dialog pre .copy { background: #fff; }
+  dialog pre { background: var(--dialog-pre); max-width: none; }
+  dialog pre .copy { background: var(--dialog-copy); }
   dialog .dialog-note { margin-top: 24px; font-size: 13.5px; color: var(--text-faint); }
   .dialog-close {
     position: absolute; top: 16px; right: 18px;
@@ -279,40 +537,131 @@
   footer a:hover { text-decoration: underline; }
   footer .spacer { margin-left: auto; }
 
+  @media (max-width: 900px) {
+    /* Copy over menu; the field then sits behind both, so it fades in
+       from the top instead of from the left. */
+    .menu-grid { grid-template-columns: 1fr; gap: 44px; }
+    .mock { width: 330px; max-width: 100%; margin: 0 auto; min-height: 0; }
+    .menu-sticky .field {
+      -webkit-mask-image: linear-gradient(180deg, transparent 35%, #000 70%, transparent);
+      mask-image: linear-gradient(180deg, transparent 35%, #000 70%, transparent);
+    }
+  }
+
   @media (max-width: 720px) {
+    .wrap { padding: 0 20px; }
+    section { padding: 64px 0; }
+    header { padding-top: 64px; }
     .step { flex-direction: column; gap: 8px; }
     /* Stacked: no vertical rules, and no side padding — an asymmetric
        inset would shift the centered text off the page's centre line. */
     .stat { border-right: 0; padding: 4px 0; margin: 0 0 24px; flex: 1 1 100%; }
-    nav .links a:not(.keep) { display: none; }
-    .dark-grid { gap: 48px; }
-    .menu-card { margin: 0 auto; }
     header .caption { padding-top: 0; }
+    .menu-sticky { padding: 64px 0; }
+    .specs-wrap { padding-bottom: 64px; }
+    .states { display: flex; width: 100%; }
+    .states button { flex: 1 1 0; padding: 6px 4px; }
+    dialog { padding: 28px 22px; width: calc(100% - 24px); }
+    pre { padding: 16px; padding-top: 44px; }
+    footer .spacer { margin-left: 0; }
+
+    /* The links leave the bar and become a sheet hanging under it — its
+       own glass surface in the page's colours, whatever the bar is over. */
+    .burger { display: inline-flex; margin-right: -8px; }
+    nav .links {
+      position: absolute; top: calc(100% + 8px); left: 12px; right: 12px;
+      flex-direction: column; align-items: stretch; gap: 0; padding: 6px;
+      border-radius: 8px; color: var(--text); --focus: var(--text);
+      background: var(--sheet); border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+      /* Faded rather than display:none so it can animate, and hidden from
+         the tab order while shut. */
+      opacity: 0; transform: translateY(-6px); visibility: hidden;
+      transition: opacity 0.2s ease, transform 0.25s ease, visibility 0.25s;
+    }
+    html.liquid nav .links {
+      -webkit-backdrop-filter: url(#liquidGlass) blur(10px);
+      backdrop-filter: url(#liquidGlass) blur(10px);
+    }
+    nav.open .links { opacity: 1; transform: none; visibility: visible; }
+    nav .links a { font-size: 16px; padding: 12px 14px; }
+    nav .links a + a, nav .links .theme-toggle { border-top: 1px solid var(--line); }
+    nav.over-dark .links a:hover, nav.over-dark .theme-toggle:hover,
+    nav .links a:hover, nav .theme-toggle:hover { background: var(--hover); }
+    .theme-toggle {
+      width: auto; height: auto; justify-content: flex-start;
+      padding: 12px 14px; font-size: 16px; font-weight: 500; border-radius: 4px;
+    }
+    .theme-label { display: inline; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important; animation-duration: 0.01ms !important;
+    }
   }
 </style>
 </head>
 <body>
 
-<nav id="siteNav">
+<!-- The displacement map behind the liquid glass, ported from the Polaris
+     site. The inline feImage is a tiny SVG where red encodes horizontal
+     shift and green vertical (the two gradients screened together), with a
+     blurred neutral-grey plate over the middle so only a band along the
+     edges bends. Stretched per element by objectBoundingBox, so one filter
+     serves the bar, the burger sheet and the menu mock. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="liquidGlass" x="0" y="0" width="100%" height="100%"
+          filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+    <feImage x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120'%3E%3Cdefs%3E%3ClinearGradient id='x' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23ff0000'/%3E%3Cstop offset='1' stop-color='%23000000'/%3E%3C/linearGradient%3E%3ClinearGradient id='y' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%2300ff00'/%3E%3Cstop offset='1' stop-color='%23000000'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='240' height='120' fill='url(%23x)'/%3E%3Crect width='240' height='120' fill='url(%23y)' style='mix-blend-mode:screen'/%3E%3Crect x='12' y='12' width='216' height='96' rx='42' fill='%23808000' style='filter:blur(10px)'/%3E%3C/svg%3E"/>
+    <!-- Chromatic aberration: one displacement, then the red and blue
+         channels are slid 2px apart before recombining, so edges fringe
+         warm on one side and cool on the other — the tell of thick glass.
+         Slid rather than displaced at mismatched scales: a per-channel
+         scale difference leaves a bright blue seam along the box edge. -->
+    <feDisplacementMap in="SourceGraphic" in2="map" scale="70" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+    <feColorMatrix in="disp" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="chR"/>
+    <feOffset in="chR" dx="2" dy="0" result="offR"/>
+    <feColorMatrix in="disp" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="chG"/>
+    <feColorMatrix in="disp" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="chB"/>
+    <feOffset in="chB" dx="-2" dy="0" result="offB"/>
+    <feComposite in="offR" in2="chG" operator="arithmetic" k2="1" k3="1" result="chRG"/>
+    <feComposite in="chRG" in2="offB" operator="arithmetic" k2="1" k3="1"/>
+  </filter>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<nav id="siteNav" aria-label="Main">
   <div class="wrap">
     <a class="wordmark" href="#">Teslaris</a>
-    <div class="links">
+    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="siteLinks"><i></i><i></i><i></i></button>
+    <div class="links" id="siteLinks">
       <a href="#features">Features</a>
       <a href="#menu">In the menu</a>
       <a href="#setup">Setup</a>
       <a href="#faq">FAQ</a>
-      <a class="keep" href="https://github.com/simonbusborg/teslaris">GitHub</a>
+      <a href="https://github.com/simonbusborg/teslaris">GitHub</a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch between light and dark">
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M4.2 12H2M22 12h-2.2M6.05 6.05L4.5 4.5M19.5 19.5l-1.55-1.55M17.95 6.05L19.5 4.5M4.5 19.5l1.55-1.55"/></svg>
+        <span class="theme-label">Appearance</span>
+      </button>
     </div>
   </div>
 </nav>
 
-<div class="devbanner">
+<div class="devbanner" role="note">
   <div class="wrap">
     <strong>Under development.</strong> Teslaris is not ready to install yet — sign-in is
     blocked by a defect on Tesla's side that prevents third-party authorisation. Downloads
     will appear here once it works end to end.
   </div>
 </div>
+
+<main id="main" tabindex="-1">
 
 <header>
   <div class="wrap">
@@ -325,12 +674,13 @@
     </div>
     <p class="fineprint">Free and open source · macOS 13+ · Not affiliated with Tesla</p>
   </div>
-  <img class="hero-car" alt="Side view of a Tesla Model 3"
+  <img class="hero-car" alt="Side view of a Tesla Model 3" width="1441" height="540"
     src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=1441&amp;bkba_opt=1">
   <p class="caption">Render from Tesla's configurator — the same image the app shows for your car.</p>
 </header>
 
-<section id="costs">
+<section id="costs" class="has-field">
+  <canvas class="field" id="costsField" aria-hidden="true"></canvas>
   <div class="wrap">
     <h2>Effectively free</h2>
     <p class="lede">Tesla meters Fleet API usage per request, and gives individual
@@ -353,33 +703,33 @@
     <p class="lede">Everything you glance at, nothing you don't.</p>
     <div class="cards">
       <div class="card">
-        <svg viewBox="0 0 24 24"><rect x="2" y="8" width="17" height="9" rx="2"/><path d="M21.5 11v3"/><rect x="5" y="10.5" width="7" height="4" rx="1" fill="currentColor" stroke="none"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="8" width="17" height="9" rx="2"/><path d="M21.5 11v3"/><rect x="5" y="10.5" width="7" height="4" rx="1" fill="currentColor" stroke="none"/></svg>
         <h3>Live, but frugal</h3><p>Refreshes every 15 minutes when parked. While
         charging, the cadence scales with time-to-full — down to every minute as the
         charge finishes. Nothing polls your car to death.</p>
       </div>
       <div class="card">
-        <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 1 6 6c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9a6 6 0 0 1 6-6z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 1 6 6c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9a6 6 0 0 1 6-6z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
         <h3>Charging notifications</h3><p>Charging started, charging complete, charger
         lost power. Each one can be switched off.</p>
       </div>
       <div class="card">
-        <svg viewBox="0 0 24 24"><path d="M12 4c-5 0-8 4.5-8 8s3 8 8 8 8-4.5 8-8-3-8-8-8z" opacity="0"/><path d="M3 13c2-4.5 5.5-7 9-7s7 2.5 9 7c-2 4.5-5.5 7-9 7s-7-2.5-9-7z"/><circle cx="12" cy="13" r="3"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4c-5 0-8 4.5-8 8s3 8 8 8 8-4.5 8-8-3-8-8-8z" opacity="0"/><path d="M3 13c2-4.5 5.5-7 9-7s7 2.5 9 7c-2 4.5-5.5 7-9 7s-7-2.5-9-7z"/><circle cx="12" cy="13" r="3"/></svg>
         <h3>Read-only by design</h3><p>The only scope requested is
         <code>vehicle_device_data</code>. Teslaris cannot unlock, wake, or drive your car.</p>
       </div>
       <div class="card">
-        <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         <h3>Keychain, not plaintext</h3><p>Credentials and session tokens live in the
         macOS Keychain. Nothing is written to disk in the clear.</p>
       </div>
       <div class="card">
-        <svg viewBox="0 0 24 24"><path d="M3 14c3-1.5 5-5 6-9 1.5 3 2 5 6 6-2 1-3 2.5-3.5 5-1.5-1-4-2-8.5-2z"/><path d="M17 4l.8 2.2L20 7l-2.2.8L17 10l-.8-2.2L14 7l2.2-.8z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14c3-1.5 5-5 6-9 1.5 3 2 5 6 6-2 1-3 2.5-3.5 5-1.5-1-4-2-8.5-2z"/><path d="M17 4l.8 2.2L20 7l-2.2.8L17 10l-.8-2.2L14 7l2.2-.8z"/></svg>
         <h3>Never wakes the car</h3><p>A sleeping Tesla stays asleep — wakes cost credit
         and battery. You see the last known data, marked as such.</p>
       </div>
       <div class="card">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18" opacity="0"/><path d="M8 21h8M12 18v3"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18" opacity="0"/><path d="M8 21h8M12 18v3"/></svg>
         <h3>Native and tiny</h3><p>Pure AppKit, one small binary. No Electron, no
         SwiftUI, no background services. MIT licensed.</p>
       </div>
@@ -387,53 +737,70 @@
   </div>
 </section>
 
-<section class="dark-section" id="menu">
-  <div class="wrap">
-    <h2>In the menu bar</h2>
-    <p class="lede">Click the icon and everything is there. The icon itself reflects
-    charging state, and the menu bar text shows your pick: battery, range, or time to full.</p>
-    <div class="dark-grid">
-      <div class="menu-card" role="img" aria-label="Illustration of the Teslaris menu">
-        <img class="car" alt=""
-          src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PN01,%24W39S,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1">
-        <div class="mrow title"><span>Tesla Model 3</span></div>
-        <div class="mrow"><span class="k">Millennium Falcon</span></div>
-        <div class="msep"></div>
-        <div class="mrow"><span class="k">Battery</span><span class="v">68%</span></div>
-        <div class="bar"><i></i></div>
-        <div class="mrow"><span class="k">Range</span><span class="v">353 km</span></div>
-        <div class="mrow"><span class="k">Status</span><span class="v">Charging</span></div>
-        <div class="mrow"><span class="k">Power</span><span class="v">11 kW</span></div>
-        <div class="mrow"><span class="k">Full in</span><span class="v">1h42m · 16:24</span></div>
-        <div class="msep"></div>
-        <div class="mrow"><span class="k">Temperature</span><span class="v">21°C in · 14°C out</span></div>
-        <div class="mrow"><span class="k">Doors</span><span class="v">Locked</span></div>
-        <div class="msep"></div>
-        <div class="mrow action"><span>Refresh Now</span><span class="kbd">⌘R</span></div>
-        <div class="mrow action"><span>Settings…</span><span class="kbd">⌘,</span></div>
+<section class="dark-section" id="menu" aria-labelledby="menuTitle">
+  <div class="menu-stage" id="menuStage">
+    <div class="menu-sticky">
+      <canvas class="field" id="menuField" aria-hidden="true"></canvas>
+      <div class="wrap menu-grid">
+        <div class="menu-copy">
+          <h2 id="menuTitle">In the menu bar</h2>
+          <p class="lede">Click the icon and everything is there. The icon itself reflects
+          charging state, and the menu bar text shows your pick: battery, range, or time to full.</p>
+          <p class="menu-hint">
+            <span class="hint-scroll">Keep scrolling to follow the car through its day — the
+            same rows the app draws, in the order its demo mode plays them.</span>
+            <span class="hint-tap">Pick a moment in the car's day — the same rows the app
+            draws, in the order its demo mode plays them.</span>
+          </p>
+          <div class="states" role="tablist" aria-label="Car state" id="stateTabs"></div>
+          <p class="state-note" id="stateNote"></p>
+        </div>
+        <div class="mock" id="statePanel" role="tabpanel">
+          <div class="mbar" aria-hidden="true">
+            <span class="on"><span id="mbIcon"></span><span id="mbTitle">62%</span></span>
+            <svg class="dim" viewBox="0 0 24 18"><circle cx="12" cy="13.6" r="1.75" fill="currentColor"/><path d="M7.7 10.4a6.4 6.4 0 0 1 8.6 0M4.2 6.6a11.5 11.5 0 0 1 15.6 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            <span class="dim" id="mbClock">Sat 09:14</span>
+          </div>
+          <div class="menu-card" id="menuCard" role="img" aria-label="The Teslaris menu">
+            <img class="car" alt="" width="800" height="333" loading="lazy"
+              src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1">
+            <div class="mrow title"><span id="mockModel">Tesla Model 3</span></div>
+            <div class="mrow"><span>Millennium Falcon</span></div>
+            <div class="mrow"><span class="k">VIN</span><span class="v" id="mockVin">5YJ3E7EB0LF000000</span></div>
+            <div class="msep"></div>
+            <div class="mock-live" id="mockLive"></div>
+            <div class="msep"></div>
+            <div class="mrow action"><span>Refresh Now</span><span class="kbd">⌘R</span></div>
+            <div class="mrow action"><span>Settings…</span><span class="kbd">⌘,</span></div>
+            <div class="msep"></div>
+            <div class="mrow action"><span>Quit Teslaris</span><span class="kbd">⌘Q</span></div>
+          </div>
+        </div>
       </div>
-      <div class="specs">
-        <h3>Specifications</h3>
-        <div class="spec-grid">
-          <div class="spec"><div class="k">Refresh, parked</div><div class="v">15 min</div></div>
-          <div class="spec"><div class="k">Refresh, charging</div><div class="v">5 → 1 min, adaptive</div></div>
-          <div class="spec"><div class="k">Sleeping car</div><div class="v">Never woken</div></div>
-        </div>
-        <div class="spec-rule"></div>
-        <div class="spec-grid">
-          <div class="spec"><div class="k">API scope</div><div class="v"><code>vehicle_device_data</code></div></div>
-          <div class="spec"><div class="k">Credential storage</div><div class="v">macOS Keychain</div></div>
-          <div class="spec"><div class="k">Car data goes to</div><div class="v">Your Mac only</div></div>
-        </div>
-        <div class="spec-rule"></div>
-        <div class="spec-grid">
-          <div class="spec"><div class="k">Framework</div><div class="v">Pure AppKit</div></div>
-          <div class="spec"><div class="k">Requires</div><div class="v">macOS 13+</div></div>
-          <div class="spec"><div class="k">License</div><div class="v">MIT</div></div>
-        </div>
-        <div class="dark-note">Illustration of the menu. The car render comes from Tesla's
-        configurator, exactly as in the app — which auto-detects your paint and wheels.</div>
+    </div>
+  </div>
+  <div class="wrap specs-wrap">
+    <div class="specs">
+      <h3>Specifications</h3>
+      <div class="spec-grid">
+        <div class="spec"><div class="k">Refresh, parked</div><div class="v">15 min</div></div>
+        <div class="spec"><div class="k">Refresh, charging</div><div class="v">5 → 1 min, adaptive</div></div>
+        <div class="spec"><div class="k">Sleeping car</div><div class="v">Never woken</div></div>
       </div>
+      <div class="spec-rule"></div>
+      <div class="spec-grid">
+        <div class="spec"><div class="k">API scope</div><div class="v"><code>vehicle_device_data</code></div></div>
+        <div class="spec"><div class="k">Credential storage</div><div class="v">macOS Keychain</div></div>
+        <div class="spec"><div class="k">Car data goes to</div><div class="v">Your Mac only</div></div>
+      </div>
+      <div class="spec-rule"></div>
+      <div class="spec-grid">
+        <div class="spec"><div class="k">Framework</div><div class="v">Pure AppKit</div></div>
+        <div class="spec"><div class="k">Requires</div><div class="v">macOS 13+</div></div>
+        <div class="spec"><div class="k">License</div><div class="v">MIT</div></div>
+      </div>
+      <div class="dark-note">Illustration of the menu. The car render comes from Tesla's
+      configurator, exactly as in the app — which auto-detects your paint and wheels.</div>
     </div>
   </div>
 </section>
@@ -465,7 +832,7 @@
     folded away — open it only if you hit it.</p>
     <div class="steps">
       <div class="step">
-        <div class="stepnum">01</div>
+        <div class="stepnum" aria-hidden="true">01</div>
         <div>
           <h3>Install Teslaris</h3>
           <p>Once builds are available, you'll drag Teslaris into
@@ -483,7 +850,7 @@
         </div>
       </div>
       <div class="step">
-        <div class="stepnum">02</div>
+        <div class="stepnum" aria-hidden="true">02</div>
         <div>
           <h3>Let Teslaris create your key</h3>
           <p>Tesla asks every app to prove its identity with a security key published on
@@ -497,12 +864,12 @@
             <em>public</em> half, then fills in the domain for you. The private key never
             leaves your machine, and a public key is public by design — Tesla downloads
             it without any authentication.</p>
-            <button type="button" class="linkbtn" id="selfHostOpen">Rather host the key yourself?</button>
+            <button type="button" class="linkbtn" id="selfHostOpen" aria-haspopup="dialog" aria-controls="selfHostDialog">Rather host the key yourself?</button>
           </details>
         </div>
       </div>
       <div class="step">
-        <div class="stepnum">03</div>
+        <div class="stepnum" aria-hidden="true">03</div>
         <div>
           <h3>Create your free Tesla developer app</h3>
           <p>This is the one part nobody can automate, and the only part that feels
@@ -531,7 +898,7 @@
               <dd>Exactly this, and nothing else. Tesla refuses to sign users in for a
               <code>localhost</code> redirect, so this HTTPS address hands the
               sign-in straight back to Teslaris on your Mac:
-              <pre><button class="copy">Copy</button><code>https://teslaris-keys.weareheavy.dev/oauth/callback</code></pre></dd>
+              <pre><button type="button" class="copy" aria-label="Copy redirect URI">Copy</button><code>https://teslaris-keys.weareheavy.dev/oauth/callback</code></pre></dd>
 
               <dt>Allowed Returning URL</dt>
               <dd>Leave it empty.</dd>
@@ -558,7 +925,7 @@
         </div>
       </div>
       <div class="step">
-        <div class="stepnum">04</div>
+        <div class="stepnum" aria-hidden="true">04</div>
         <div>
           <h3>Paste the two codes, and sign in</h3>
           <p>Back in <strong>Settings…</strong>, paste your Client ID and Client Secret,
@@ -643,19 +1010,21 @@
   </div>
 </section>
 
-<dialog id="selfHostDialog">
+</main>
+
+<dialog id="selfHostDialog" aria-labelledby="selfHostTitle">
   <form method="dialog">
     <button class="dialog-close" aria-label="Close">&times;</button>
   </form>
-  <h3>Host the key yourself</h3>
+  <h3 id="selfHostTitle">Host the key yourself</h3>
   <p>Generate the pair, publish the public half on any domain you control, and type that
   domain into the <strong>Key domain</strong> field instead. Teslaris never contacts our
   key service in that case.</p>
-  <pre><button class="copy">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
+  <pre><button type="button" class="copy" aria-label="Copy key generation commands">Copy</button><code>openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
 openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></pre>
   <p>Tesla looks for it at exactly this path — a free GitHub Pages site
   (<code>username.github.io</code>) works well:</p>
-  <pre><button class="copy">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
+  <pre><button type="button" class="copy" aria-label="Copy public key path">Copy</button><code>https://YOUR-DOMAIN/.well-known/appspecific/com.tesla.3p.public-key.pem</code></pre>
   <p class="dialog-note">Keep <code>private-key.pem</code> safe. Teslaris never uses it —
   it only matters if you later want Tesla's vehicle command API.</p>
 </dialog>
@@ -670,7 +1039,37 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   </div>
 </footer>
 
+<p class="sr-only" role="status" id="copyStatus"></p>
+
 <script>
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+  const root = document.documentElement;
+  const isDark = () => (root.dataset.theme || (systemDark.matches ? 'dark' : 'light')) === 'dark';
+
+  // Theme: the button flips the page and remembers the choice. Until it is
+  // pressed the page has no data-theme at all, which keeps the system
+  // preference in charge — so the first press resolves what the visitor is
+  // actually looking at, not what is stored.
+  const themeToggle = document.getElementById('themeToggle');
+  const labelTheme = () => themeToggle.setAttribute('aria-label',
+    isDark() ? 'Switch to light appearance' : 'Switch to dark appearance');
+  themeToggle.addEventListener('click', () => {
+    const next = isDark() ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('teslaris-theme', next); } catch (e) {}
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+      meta.content = next === 'dark' ? '#17181c' : '#ffffff';
+    }
+    labelTheme();
+    document.dispatchEvent(new Event('themechange'));
+  });
+  systemDark.addEventListener('change', () => {
+    labelTheme();
+    document.dispatchEvent(new Event('themechange'));
+  });
+  labelTheme();
+
   // Invert the nav while the dark section sits behind it — tesla.com
   // flips its header the same way rather than fixing one tint.
   const siteNav = document.getElementById('siteNav');
@@ -678,51 +1077,453 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   const syncNav = () => {
     const box = darkSection.getBoundingClientRect();
     const navHeight = siteNav.offsetHeight;
-    siteNav.classList.toggle('over-dark', box.top <= navHeight && box.bottom > 0);
+    siteNav.classList.toggle('over-dark', box.top <= navHeight && box.bottom > navHeight);
   };
   window.addEventListener('scroll', syncNav, {passive: true});
   window.addEventListener('resize', syncNav);
   syncNav();
 
+  // Burger: the sheet is opened by class on the nav, so the CSS owns every
+  // state. It shuts on a link, on Escape (handing focus back to the
+  // button), on a tap outside, and on a resize back to the wide bar, where
+  // a left-over .open would leave aria-expanded describing nothing.
+  const burger = document.getElementById('burger');
+  const siteLinks = document.getElementById('siteLinks');
+  const setMenu = open => {
+    siteNav.classList.toggle('open', open);
+    burger.setAttribute('aria-expanded', String(open));
+    burger.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+  };
+  burger.addEventListener('click', () => setMenu(!siteNav.classList.contains('open')));
+  siteLinks.addEventListener('click', e => { if (e.target.closest('a')) setMenu(false); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !siteNav.classList.contains('open')) return;
+    const inside = siteLinks.contains(document.activeElement);
+    setMenu(false);
+    if (inside) burger.focus();
+  });
+  document.addEventListener('click', e => {
+    if (siteNav.classList.contains('open') && !e.target.closest('#siteNav')) setMenu(false);
+  });
+  window.matchMedia('(max-width: 720px)').addEventListener('change', e => {
+    if (!e.matches) setMenu(false);
+  });
+
   // A different Tesla each visit, like the Polaris site does with its
   // Polestars. Same verified option sets the app uses — the compositor
-  // errors unless trim, paint, wheels and interior are all present.
+  // errors unless trim, paint, wheels and interior are all present. The
+  // VIN's fourth character is the model, so the mock's VIN follows.
   const compositor = (model, options, size) =>
     `https://static-assets.tesla.com/configurator/compositor?model=${model}`
     + `&options=${options}&view=STUD_SIDE&size=${size}&bkba_opt=1`;
   const models = [
-    {name: 'Tesla Model S', code: 'ms', options: '%24MTS14,%24PPSW,%24WS90,%24IBE00'},
-    {name: 'Tesla Model 3', code: 'm3', options: '%24MT356,%24PPSW,%24W38A,%24IPB3'},
-    {name: 'Tesla Model X', code: 'mx', options: '%24MTX14,%24PPSW,%24WX00,%24IBE00'},
-    {name: 'Tesla Model Y', code: 'my', options: '%24MTY13,%24PPSW,%24WY19B,%24INPB0'},
+    {name: 'Tesla Model S', code: 'ms', vin: '5YJSE7EB0LF000000', options: '%24MTS14,%24PPSW,%24WS90,%24IBE00'},
+    {name: 'Tesla Model 3', code: 'm3', vin: '5YJ3E7EB0LF000000', options: '%24MT356,%24PPSW,%24W38A,%24IPB3'},
+    {name: 'Tesla Model X', code: 'mx', vin: '5YJXE7EB0LF000000', options: '%24MTX14,%24PPSW,%24WX00,%24IBE00'},
+    {name: 'Tesla Model Y', code: 'my', vin: '5YJYE7EB0LF000000', options: '%24MTY13,%24PPSW,%24WY19B,%24INPB0'},
   ];
   const pick = models[Math.floor(Math.random() * models.length)];
   const hero = document.querySelector('.hero-car');
   hero.src = compositor(pick.code, pick.options, 1441);
   hero.alt = `Side view of a ${pick.name}`;
   document.querySelector('.menu-card img.car').src = compositor(pick.code, pick.options, 800);
-  document.querySelector('.menu-card .mrow.title span').textContent = pick.name;
+  document.getElementById('mockModel').textContent = pick.name;
+  document.getElementById('mockVin').textContent = pick.vin;
+
+  /* ---- The menu, state by state ----
+     Rows, labels and formats follow StatusItemController.swift; the values
+     follow DemoVehicleSource's day (parked → charging → charged → asleep,
+     ~5.2 km of range per percent). Graphite stands in for the accent
+     colour the app uses for a battery that isn't charging — it is one of
+     macOS's own accent choices, and keeps the page monochrome. */
+  const GREEN = '#30d158', GRAPHITE = '#98989d', GREY = '#8e8e93';
+  const ICONS = {
+    car: '<svg viewBox="0 0 24 16" aria-hidden="true"><path d="M3.5 11.5V8.6l1.9-4A2 2 0 0 1 7.2 3.5h9.6a2 2 0 0 1 1.8 1.1l1.9 4v2.9a1 1 0 0 1-1 1h-1.3a1 1 0 0 1-1-1v-.7H6.8v.7a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4.5 8.5h15" stroke="currentColor" stroke-width="1.2"/></svg>',
+    bolt: '<svg viewBox="0 0 24 16" aria-hidden="true"><path d="M3.5 11.5V8.6l1.9-4A2 2 0 0 1 7.2 3.5h9.6a2 2 0 0 1 1.8 1.1l1.9 4v2.9a1 1 0 0 1-1 1h-1.3a1 1 0 0 1-1-1v-.7H6.8v.7a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.9 4.6 9.8 8.4h2.3l-.9 3 3.1-3.8H12z" fill="currentColor"/></svg>',
+    boltFill: '<svg viewBox="0 0 24 16" aria-hidden="true"><mask id="mbBolt"><rect width="24" height="16" fill="#fff"/><path d="M12.9 4.6 9.8 8.4h2.3l-.9 3 3.1-3.8H12z" fill="#000" stroke="#000" stroke-width=".8"/></mask><path d="M3.5 11.5V8.6l1.9-4A2 2 0 0 1 7.2 3.5h9.6a2 2 0 0 1 1.8 1.1l1.9 4v2.9a1 1 0 0 1-1 1h-1.3a1 1 0 0 1-1-1v-.7H6.8v.7a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" mask="url(#mbBolt)"/></svg>',
+  };
+  const STATES = [
+    {
+      id: 'parked', tab: 'Parked', icon: 'car', clock: 'Sat 09:14',
+      battery: 62, barColor: GRAPHITE,
+      note: 'Parked and unplugged. Teslaris checks in every 15 minutes, and the menu bar shows your battery.',
+      rows: [
+        ['kv', 'Range', '322 km'], ['kv', 'Status', 'Not plugged in'],
+        ['kv', 'Charger', 'Disconnected'], ['kv', 'Charge limit', '90%'],
+        ['sep'], ['kv', 'Temperature', '21°C in · 14°C out'], ['kv', 'Doors', 'Locked'],
+        ['sep'], ['kv', 'Odometer', '23,412 km'],
+        ['sep'], ['kv', 'Updated', '09:14'], ['kv', 'Credits', '1,240 of 5,000'],
+        ['bar', 24.8, GREY], ['info', 'Credits reset monthly'],
+      ],
+    },
+    {
+      id: 'charging', tab: 'Charging', icon: 'boltFill', clock: 'Sat 14:42',
+      battery: 68, barColor: GREEN,
+      note: 'Plugged in and charging. The icon fills in, and refreshes speed up as the charge nears its limit — down to once a minute.',
+      rows: [
+        ['kv', 'Range', '353 km'], ['kv', 'Status', 'Charging'],
+        ['kv', 'Power', '11 kW'], ['kv', 'Charge limit', '90%'], ['kv', 'Full in', '1h42m · 16:24'],
+        ['sep'], ['kv', 'Temperature', '19°C in · 15°C out'], ['kv', 'Doors', 'Locked'],
+        ['sep'], ['kv', 'Odometer', '23,440 km'],
+        ['sep'], ['kv', 'Updated', '14:42'], ['kv', 'Credits', '1,262 of 5,000'],
+        ['bar', 25.2, GREY], ['info', 'Credits reset monthly'],
+      ],
+    },
+    {
+      id: 'charged', tab: 'Charged', icon: 'bolt', clock: 'Sat 17:05',
+      battery: 90, barColor: GRAPHITE,
+      note: 'Charge limit reached, and a notification says so. The menu also passes on what the car reports — here, a software update waiting.',
+      rows: [
+        ['kv', 'Range', '468 km'], ['kv', 'Status', 'Charged'],
+        ['kv', 'Charger', 'Connected'], ['kv', 'Charge limit', '90%'],
+        ['sep'], ['kv', 'Temperature', '18°C in · 13°C out'], ['kv', 'Doors', 'Locked'],
+        ['kv', 'Software', 'Update 2026.32.6 available'],
+        ['sep'], ['kv', 'Odometer', '23,440 km'],
+        ['sep'], ['kv', 'Updated', '17:05'], ['kv', 'Credits', '1,290 of 5,000'],
+        ['bar', 25.8, GREY], ['info', 'Credits reset monthly'],
+      ],
+    },
+    {
+      id: 'asleep', tab: 'Asleep', icon: 'car', clock: 'Sat 23:40',
+      battery: 89, barColor: GRAPHITE,
+      note: 'The car has gone to sleep. Teslaris won’t wake it: the menu keeps the last known numbers, and says that’s what they are.',
+      rows: [
+        ['kv', 'Range', '462 km'], ['kv', 'Status', 'Not plugged in'],
+        ['kv', 'Charger', 'Disconnected'], ['kv', 'Charge limit', '90%'],
+        ['sep'], ['kv', 'Temperature', '16°C in · 9°C out'], ['kv', 'Doors', 'Locked'],
+        ['sep'], ['kv', 'Odometer', '23,457 km'],
+        ['sep'], ['kv', 'Updated', '21:52'], ['kv', 'Credits', '1,318 of 5,000'],
+        ['bar', 26.4, GREY], ['info', 'Credits reset monthly'],
+        ['row', 'Car is asleep — showing last known data'],
+      ],
+    },
+  ];
+
+  const stateTabs = document.getElementById('stateTabs');
+  const statePanel = document.getElementById('statePanel');
+  const stateNote = document.getElementById('stateNote');
+  const menuCard = document.getElementById('menuCard');
+  const mockLive = document.getElementById('mockLive');
+  const mbIcon = document.getElementById('mbIcon');
+  const mbTitle = document.getElementById('mbTitle');
+  const mbClock = document.getElementById('mbClock');
+
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const kv = (k, v) => `<div class="mrow"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`;
+  const barHTML = (pct, color) => `<div class="bar"><i style="width:${pct}%;background:${color}"></i></div>`;
+
+  const tabs = STATES.map((state, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.id = `state-${state.id}`;
+    b.setAttribute('aria-controls', 'statePanel');
+    b.textContent = state.tab;
+    b.addEventListener('click', () => choose(i, true));
+    stateTabs.appendChild(b);
+    return b;
+  });
+
+  let shown = -1;
+  function renderState(i) {
+    if (i === shown) return;
+    const first = shown === -1;
+    shown = i;
+    const state = STATES[i];
+    mockLive.innerHTML = kv('Battery', state.battery + '%') + barHTML(state.battery, state.barColor)
+      + state.rows.map(([type, a, b]) => {
+        if (type === 'sep') return '<div class="msep"></div>';
+        if (type === 'bar') return barHTML(a, b);
+        if (type === 'info') return `<div class="mrow info"><span>${esc(a)}</span></div>`;
+        if (type === 'row') return `<div class="mrow"><span>${esc(a)}</span></div>`;
+        return kv(a, b);
+      }).join('');
+    mbIcon.innerHTML = ICONS[state.icon];
+    mbTitle.textContent = state.battery + '%';
+    mbClock.textContent = state.clock;
+    stateNote.textContent = state.note;
+    // The mock's text alternative: the menu as a sentence. It lives on a
+    // role="img", which screen readers read on arrival rather than
+    // announcing on every scroll-driven change.
+    const spoken = [`Battery ${state.battery}%`].concat(state.rows
+      .filter(([type]) => type === 'kv' || type === 'row')
+      .map(([type, a, b]) => type === 'kv' ? `${a} ${b}` : a));
+    menuCard.setAttribute('aria-label',
+      `The Teslaris menu for ${pick.name} “Millennium Falcon”, ${state.tab.toLowerCase()}: ${spoken.join(', ')}.`);
+    tabs.forEach((b, j) => {
+      b.setAttribute('aria-selected', String(j === i));
+      b.tabIndex = j === i ? 0 : -1;
+    });
+    statePanel.setAttribute('aria-labelledby', tabs[i].id);
+    if (!first) {
+      // Restart the fade — re-adding the class on the same frame would
+      // not retrigger it.
+      mockLive.classList.remove('swap');
+      void mockLive.offsetWidth;
+      mockLive.classList.add('swap');
+    }
+  }
+
+  // Pinned only where the CSS pins it; the query is the same string.
+  const pinned = window.matchMedia('(min-width: 901px) and (min-height: 780px) and (prefers-reduced-motion: no-preference)');
+  const menuStage = document.getElementById('menuStage');
+  const stageTravel = () => menuStage.offsetHeight - window.innerHeight;
+
+  // A tab press while pinned scrolls to that state's slice of the stage, so
+  // the next scroll doesn't snap straight back to where the page was.
+  function choose(i, fromTab) {
+    renderState(i);
+    if (fromTab && pinned.matches) {
+      const top = menuStage.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({top: top + stageTravel() * (i + 0.5) / STATES.length, behavior: 'smooth'});
+    }
+  }
+
+  // Arrow keys move along the tabs, as a tablist should.
+  stateTabs.addEventListener('keydown', e => {
+    const keys = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1};
+    let next;
+    if (e.key in keys) next = (shown + keys[e.key] + STATES.length) % STATES.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = STATES.length - 1;
+    else return;
+    e.preventDefault();
+    choose(next, true);
+    tabs[next].focus();
+  });
+
+  // Scrolling the pinned stage deals out the states in even slices, each
+  // snapping to its state rather than interpolating — the menu is a
+  // snapshot, not a dial.
+  let queued = false;
+  const driveStates = () => {
+    queued = false;
+    if (!pinned.matches) return;
+    const travel = stageTravel();
+    if (travel <= 0) return;
+    const p = Math.min(1, Math.max(0, -menuStage.getBoundingClientRect().top / travel));
+    renderState(Math.min(STATES.length - 1, Math.floor(p * STATES.length)));
+  };
+  const onStageScroll = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(driveStates);
+  };
+  window.addEventListener('scroll', onStageScroll, {passive: true});
+  window.addEventListener('resize', onStageScroll, {passive: true});
+  pinned.addEventListener('change', onStageScroll);
+  renderState(0);
+  driveStates();
 
   // Self-hosting is a side path: a modal keeps it out of the main flow
-  // without nesting an accordion inside one.
+  // without nesting an accordion inside one. The native dialog traps focus
+  // and closes on Escape; focus is handed back to the opener explicitly,
+  // since not every engine does it.
   const selfHostDialog = document.getElementById('selfHostDialog');
-  document.getElementById('selfHostOpen').addEventListener('click', () => {
+  const selfHostOpen = document.getElementById('selfHostOpen');
+  selfHostOpen.addEventListener('click', () => {
     selfHostDialog.showModal();
   });
+  selfHostDialog.addEventListener('close', () => selfHostOpen.focus());
   // Clicking the backdrop (outside the panel) closes it, as expected.
   selfHostDialog.addEventListener('click', (event) => {
     if (event.target === selfHostDialog) selfHostDialog.close();
   });
 
+  const copyStatus = document.getElementById('copyStatus');
   for (const btn of document.querySelectorAll('pre .copy')) {
     btn.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(btn.parentElement.querySelector('code').innerText);
+      try {
+        await navigator.clipboard.writeText(btn.parentElement.querySelector('code').innerText);
+      } catch (e) {
+        return;
+      }
       btn.textContent = 'Copied';
-      setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+      copyStatus.textContent = 'Copied to clipboard';
+      setTimeout(() => { btn.textContent = 'Copy'; copyStatus.textContent = ''; }, 1600);
     });
   }
 
+  /* ---- Dither field ----
+     Ported from the Polaris site (Bayer-dithered fbm; that shader came from
+     zavalit/bayer-dithering-webgl-demo, which ships no LICENSE — reuse is
+     formally unsettled, worth knowing in an MIT repo). Monochrome here: one
+     colour, read from the canvas's CSS `color`, so the theme decides it.
+     Raw WebGL2; no WebGL2, no field. Paused off screen, and drawn once and
+     left standing under reduced motion. */
+  const makeDitherField = (canvas, opts = {}) => {
+    if (!canvas) return;
+    let gl = null;
+    try {
+      gl = canvas.getContext('webgl2', {alpha: true, antialias: false, premultipliedAlpha: false});
+    } catch (e) {}
+    if (!gl) return;
 
+    const VERT = `#version 300 es
+in vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+    const FRAG = `#version 300 es
+precision highp float;
+uniform vec3  uColor;
+uniform vec2  uResolution;
+uniform float uTime;
+uniform float uPixelSize;
+uniform vec2  uPointer;
+uniform float uReach;
+out vec4 fragColor;
+
+float Bayer2(vec2 a){ a = floor(a); return fract(a.x / 2. + a.y * a.y * .75); }
+#define Bayer4(a) (Bayer2(.5*(a))*0.25 + Bayer2(a))
+#define Bayer8(a) (Bayer4(.5*(a))*0.25 + Bayer2(a))
+
+#define FBM_OCTAVES     5
+#define FBM_LACUNARITY  1.25
+#define FBM_GAIN        1.
+#define FBM_SCALE       4.0
+
+float hash11(float n){ return fract(sin(n)*43758.5453); }
+
+float vnoise(vec3 p){
+  vec3 ip = floor(p), fp = fract(p);
+  vec3 k = vec3(1.0, 57.0, 113.0);
+  float n000 = hash11(dot(ip + vec3(0,0,0), k));
+  float n100 = hash11(dot(ip + vec3(1,0,0), k));
+  float n010 = hash11(dot(ip + vec3(0,1,0), k));
+  float n110 = hash11(dot(ip + vec3(1,1,0), k));
+  float n001 = hash11(dot(ip + vec3(0,0,1), k));
+  float n101 = hash11(dot(ip + vec3(1,0,1), k));
+  float n011 = hash11(dot(ip + vec3(0,1,1), k));
+  float n111 = hash11(dot(ip + vec3(1,1,1), k));
+  vec3 w = fp*fp*fp*(fp*(fp*6.0-15.0)+10.0);
+  float x00 = mix(n000, n100, w.x), x10 = mix(n010, n110, w.x);
+  float x01 = mix(n001, n101, w.x), x11 = mix(n011, n111, w.x);
+  return mix(mix(x00, x10, w.y), mix(x01, x11, w.y), w.z) * 2.0 - 1.0;
+}
+
+float fbm2(vec2 uv, float t){
+  vec3 p = vec3(uv * FBM_SCALE, t);
+  float amp = 1., freq = 1., sum = 1.;
+  for (int i = 0; i < FBM_OCTAVES; ++i){
+    sum  += amp * vnoise(p * freq);
+    freq *= FBM_LACUNARITY;
+    amp  *= FBM_GAIN;
+  }
+  return sum * 0.5 + 0.5;
+}
+
+void main(){
+  vec2 fragCoord = gl_FragCoord.xy - uResolution * .5;
+  float aspect = uResolution.x / uResolution.y;
+
+  // Sampled per 8x8 cell, not per pixel, so the raster reads as a raster.
+  float cell = 8. * uPixelSize;
+  vec2 cellId = floor(fragCoord / cell);
+  vec2 uv = (cellId * cell) / uResolution * vec2(aspect, 1.0);
+
+  float feed = fbm2(uv, uTime * 0.05);
+  feed = feed * 0.5 - 0.62;
+
+  // The pointer thickens the pattern around itself, as a soft bell.
+  vec2 cellCenter = cellId * cell + cell * 0.5 + uResolution * 0.5;
+  float d = length(cellCenter - uPointer) / max(uReach, 1.0);
+  feed += pow(max(0.0, 1.0 - d * d), 2.0) * 0.42;
+
+  float bayer = Bayer8(fragCoord / uPixelSize) - 0.5;
+  fragColor = vec4(uColor, step(0.5, feed + bayer));
+}`;
+
+    const compile = (type, src) => {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error('dither:', gl.getShaderInfoLog(sh));
+      return sh;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+
+    // One triangle covering clip space, uploaded once.
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const uRes = gl.getUniformLocation(prog, 'uResolution');
+    const uTime = gl.getUniformLocation(prog, 'uTime');
+    const uPointer = gl.getUniformLocation(prog, 'uPointer');
+    const uReach = gl.getUniformLocation(prog, 'uReach');
+    const uColor = gl.getUniformLocation(prog, 'uColor');
+    gl.uniform1f(gl.getUniformLocation(prog, 'uPixelSize'), opts.pixelSize || 3);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    const syncColor = () => {
+      const m = getComputedStyle(canvas).color.match(/[\d.]+/g) || [0, 0, 0];
+      gl.uniform3f(uColor, m[0] / 255, m[1] / 255, m[2] / 255);
+    };
+    syncColor();
+
+    let mouseX = 0, mouseY = 0, hasMouse = false;
+    window.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse') return;
+      mouseX = e.clientX; mouseY = e.clientY; hasMouse = true;
+    }, {passive: true});
+
+    // Drawn in CSS pixels on purpose: at dpr 2 the cells would halve and
+    // the pattern would read as noise.
+    const resize = () => {
+      const w = Math.max(1, Math.round(canvas.clientWidth));
+      const h = Math.max(1, Math.round(canvas.clientHeight));
+      if (canvas.width === w && canvas.height === h) return;
+      canvas.width = w; canvas.height = h;
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(uRes, w, h);
+      gl.uniform1f(uReach, Math.min(320, w * 0.3));
+    };
+
+    let onScreen = false, running = false;
+    const start = performance.now();
+    const draw = now => {
+      running = false;
+      if (!onScreen) return;
+      resize();
+      const t = (now - start) / 1000;
+      gl.uniform1f(uTime, t);
+      const rect = canvas.getBoundingClientRect();
+      // With no mouse an invisible target walks a slow round, so the field
+      // still lives on a phone.
+      const px = hasMouse ? mouseX - rect.left : rect.width * (0.5 + 0.34 * Math.cos(t * 0.31));
+      const py = hasMouse ? mouseY - rect.top : rect.height * (0.5 + 0.28 * Math.sin(t * 0.47));
+      gl.uniform2f(uPointer, px, rect.height - py);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (!calm.matches) kick();
+    };
+    const kick = () => {
+      if (running) return;
+      running = true;
+      requestAnimationFrame(draw);
+    };
+
+    new IntersectionObserver(([e]) => {
+      onScreen = e.isIntersecting;
+      if (onScreen) kick();
+    }, {rootMargin: '120px'}).observe(canvas);
+
+    // A still field still has to follow the theme and the window size.
+    const redraw = () => { syncColor(); if (calm.matches) kick(); };
+    document.addEventListener('themechange', redraw);
+    window.addEventListener('resize', () => { if (calm.matches) kick(); }, {passive: true});
+    calm.addEventListener('change', kick);
+  };
+
+  makeDitherField(document.getElementById('costsField'));
+  makeDitherField(document.getElementById('menuField'));
 </script>
 </body>
 </html>

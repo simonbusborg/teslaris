@@ -3,12 +3,13 @@
 //  Teslaris
 //
 //  Local notifications for charging milestones, derived by comparing
-//  consecutive refreshes. UNUserNotificationCenter only works from a real
+//  consecutive refreshes, and the low-battery reminder. UNUserNotificationCenter only works from a real
 //  .app bundle, so everything is a no-op under `swift run`.
 //
 
 import AppKit
 import UserNotifications
+import TeslarisShared
 
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
@@ -25,7 +26,15 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func vehicleDataDidUpdate(old: VehicleData?, new: VehicleData) {
-        guard available, authorized, let old else { return }
+        guard available, authorized else { return }
+
+        // Runs before the `old` guard: a reminder that only fired on a
+        // comparison would stay silent through the first refresh after
+        // launch, which is exactly when the app is catching up on a car
+        // that drained while it wasn't running.
+        checkLowBattery(new)
+
+        guard let old else { return }
 
         let done = new.chargingState == "Complete" || new.batteryPercentage >= 99.5
         let trouble = new.chargingState == "NoPower"
@@ -34,7 +43,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             guard Preferences.notifyChargingStarted else { return }
             var body = String(format: "%.0f%%", new.batteryPercentage)
             if let minutes = new.minutesToFull, minutes > 0 {
-                body += " · full in \(StatusItemController.shortDuration(minutes: minutes))"
+                body += " · full in \(CarFormat.shortDuration(minutes: minutes))"
             }
             post(title: "Charging started", body: body)
         } else if old.isCharging && !new.isCharging && done {
@@ -47,6 +56,27 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             post(title: "Charging problem",
                  body: String(format: "Charger reported no power at %.0f%%", new.batteryPercentage))
         }
+    }
+
+    private func checkLowBattery(_ new: VehicleData) {
+        let vin = new.vin ?? Preferences.vin
+        let warned = Preferences.lowBatteryWarned(vin: vin)
+        // Plugged in counts as charging here, not only "Charging": a Tesla
+        // waiting for scheduled off-peak charging reports "Stopped", and
+        // telling that owner to plug in would be wrong.
+        let outcome = LowBatteryWatch.evaluate(percentage: new.batteryPercentage,
+                                               isCharging: new.isCharging || new.isPluggedIn == true,
+                                               threshold: Preferences.lowBatteryThreshold,
+                                               warned: warned)
+        // The armed/disarmed state is tracked even with the reminder switched
+        // off, so turning it on mid-drive doesn't fire for a crossing that
+        // happened while it was off.
+        if outcome.warned != warned {
+            Preferences.setLowBatteryWarned(outcome.warned, vin: vin)
+        }
+        guard outcome.notify, Preferences.notifyLowBattery else { return }
+        post(title: "Low battery",
+             body: String(format: "%.0f%% left — time to plug in", new.batteryPercentage))
     }
 
     private func post(title: String, body: String) {

@@ -9,6 +9,7 @@
 //
 
 import AppKit
+import TeslarisShared
 
 final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate {
 
@@ -18,10 +19,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     private let regionPopup = NSPopUpButton()
     private let displayPopup = NSPopUpButton()
     private let unitPopup = NSPopUpButton()
+    private let refreshPopup = NSPopUpButton()
     private let launchCheckbox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     private let notifyStartCheckbox = NSButton(checkboxWithTitle: "Charging started", target: nil, action: nil)
     private let notifyDoneCheckbox = NSButton(checkboxWithTitle: "Charging complete", target: nil, action: nil)
     private let notifyProblemCheckbox = NSButton(checkboxWithTitle: "Charging problems", target: nil, action: nil)
+    private let notifyLowCheckbox = NSButton(checkboxWithTitle: "Low battery at", target: nil, action: nil)
+    private let lowThresholdPopup = NSPopUpButton()
 
     /// Held so the key-hosting action can show progress on it.
     private weak var keyHostingButton: NSButton?
@@ -94,6 +98,37 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         for option in DisplayOption.allCases { displayPopup.addItem(withTitle: option.rawValue) }
         unitPopup.removeAllItems()
         for unit in DistanceUnit.allCases { unitPopup.addItem(withTitle: unit.rawValue) }
+        refreshPopup.removeAllItems()
+        for interval in RefreshInterval.allCases { refreshPopup.addItem(withTitle: interval.title) }
+        lowThresholdPopup.removeAllItems()
+        lowThresholdPopup.addItems(withTitles: LowBatteryWatch.thresholds.map { "\($0)%" })
+        // The threshold means nothing with the reminder off; greying it out
+        // says so without hiding where it lives.
+        notifyLowCheckbox.target = self
+        notifyLowCheckbox.action = #selector(lowBatteryToggled)
+
+        let refreshHelp = NSTextField(labelWithString: "Checking less often uses fewer Fleet API credits and lets the car fall asleep. A sleeping car is never woken.")
+        refreshHelp.font = .systemFont(ofSize: 11)
+        refreshHelp.textColor = .secondaryLabelColor
+        refreshHelp.lineBreakMode = .byWordWrapping
+        refreshHelp.preferredMaxLayoutWidth = 340
+
+        let lowRow = NSStackView(views: [notifyLowCheckbox, lowThresholdPopup])
+        lowRow.orientation = .horizontal
+        lowRow.spacing = 6
+        lowRow.alignment = .firstBaseline
+
+        // The grid's text labels sit in their own cells and aren't linked to
+        // the control beside them, so VoiceOver would announce "text field"
+        // or "pop-up button" with no name. Each control carries its own.
+        clientIdField.setAccessibilityLabel("Client ID")
+        clientSecretField.setAccessibilityLabel("Client Secret")
+        domainField.setAccessibilityLabel("Key domain")
+        regionPopup.setAccessibilityLabel("Region")
+        displayPopup.setAccessibilityLabel("Show in menu bar")
+        unitPopup.setAccessibilityLabel("Distances")
+        refreshPopup.setAccessibilityLabel("Refresh while parked")
+        lowThresholdPopup.setAccessibilityLabel("Low battery threshold")
 
         let guideLink = NSTextField(labelWithString: "Use the key domain as the Allowed Origin when you create your (free) Tesla developer app — see the setup guide.")
         guideLink.font = .systemFont(ofSize: 11)
@@ -131,18 +166,22 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
             [NSGridCell.emptyContentView, registerButton],
             [label("Show in bar:"), displayPopup],
             [label("Distances:"), unitPopup],
+            [label("While parked:"), refreshPopup],
+            [NSGridCell.emptyContentView, refreshHelp],
             [NSGridCell.emptyContentView, launchCheckbox],
             [label("Notify about:"), notifyStartCheckbox],
             [NSGridCell.emptyContentView, notifyDoneCheckbox],
-            [NSGridCell.emptyContentView, notifyProblemCheckbox]
+            [NSGridCell.emptyContentView, notifyProblemCheckbox],
+            [NSGridCell.emptyContentView, lowRow]
         ])
         grid.rowSpacing = 12
         grid.columnSpacing = 10
         grid.rowAlignment = .firstBaseline
         grid.column(at: 0).xPlacement = .trailing
-        for control in [regionPopup, displayPopup, unitPopup, launchCheckbox,
-                        generateKeysButton, registerButton, domainStatus, credentialStatus,
-                        notifyStartCheckbox, notifyDoneCheckbox, notifyProblemCheckbox] as [NSView] {
+        for control in [regionPopup, displayPopup, unitPopup, refreshPopup, refreshHelp,
+                        launchCheckbox, generateKeysButton, registerButton, domainStatus,
+                        credentialStatus, notifyStartCheckbox, notifyDoneCheckbox,
+                        notifyProblemCheckbox, lowRow] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
         grid.row(at: 1).topPadding = -6    // verdict hugs the domain field
@@ -152,9 +191,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         grid.row(at: 6).topPadding = -6    // verdict hugs the secret field
         grid.row(at: 8).topPadding = -2    // Register hugs its inputs
         grid.row(at: 9).topPadding = 14    // display preferences
-        grid.row(at: 12).topPadding = 10   // notifications
-        grid.row(at: 13).topPadding = -6
-        grid.row(at: 14).topPadding = -6
+        grid.row(at: 12).topPadding = -6   // help hugs the refresh popup
+        grid.row(at: 14).topPadding = 10   // notifications
+        grid.row(at: 15).topPadding = -6
+        grid.row(at: 16).topPadding = -6
+        grid.row(at: 17).topPadding = -6
 
         grid.translatesAutoresizingMaskIntoConstraints = false
 
@@ -197,10 +238,19 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         regionPopup.selectItem(withTitle: Preferences.region.rawValue)
         displayPopup.selectItem(withTitle: Preferences.displayOption.rawValue)
         unitPopup.selectItem(withTitle: Preferences.distanceUnit.rawValue)
+        refreshPopup.selectItem(at: RefreshInterval.allCases.firstIndex(of: Preferences.refreshInterval) ?? 0)
         launchCheckbox.state = Preferences.launchAtLogin ? .on : .off
         notifyStartCheckbox.state = Preferences.notifyChargingStarted ? .on : .off
         notifyDoneCheckbox.state = Preferences.notifyChargingComplete ? .on : .off
         notifyProblemCheckbox.state = Preferences.notifyChargingProblem ? .on : .off
+        notifyLowCheckbox.state = Preferences.notifyLowBattery ? .on : .off
+        lowThresholdPopup.selectItem(at: LowBatteryWatch.thresholds
+            .firstIndex(of: Preferences.lowBatteryThreshold) ?? 0)
+        lowThresholdPopup.isEnabled = (notifyLowCheckbox.state == .on)
+    }
+
+    @objc private func lowBatteryToggled() {
+        lowThresholdPopup.isEnabled = (notifyLowCheckbox.state == .on)
     }
 
     // MARK: - Live validation
@@ -314,6 +364,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         Preferences.notifyChargingStarted = (notifyStartCheckbox.state == .on)
         Preferences.notifyChargingComplete = (notifyDoneCheckbox.state == .on)
         Preferences.notifyChargingProblem = (notifyProblemCheckbox.state == .on)
+        if refreshPopup.indexOfSelectedItem >= 0 {
+            Preferences.refreshInterval = RefreshInterval.allCases[refreshPopup.indexOfSelectedItem]
+        }
+        Preferences.notifyLowBattery = (notifyLowCheckbox.state == .on)
+        if lowThresholdPopup.indexOfSelectedItem >= 0 {
+            Preferences.lowBatteryThreshold = LowBatteryWatch.thresholds[lowThresholdPopup.indexOfSelectedItem]
+        }
 
         let secret = clientSecretField.stringValue
         if secret.isEmpty {

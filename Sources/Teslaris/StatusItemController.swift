@@ -8,6 +8,7 @@
 //
 
 import AppKit
+import TeslarisShared
 
 final class StatusItemController {
 
@@ -62,6 +63,9 @@ final class StatusItemController {
         let symbol = Self.icon(for: data)
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Teslaris")
         statusItem.button?.title = " " + barTitle(for: data)
+        // The bar title alone can be a bare "0min" or "412km"; VoiceOver gets
+        // the app's name and the state in words instead.
+        statusItem.button?.setAccessibilityLabel(Self.accessibilityLabel(for: data))
         statusItem.menu = buildMenu(data: data, error: error)
     }
 
@@ -75,6 +79,15 @@ final class StatusItemController {
         if data.isCharging { return "bolt.car.fill" }
         if data.isPluggedIn == true { return "bolt.car" }
         return "car"
+    }
+
+    /// What VoiceOver reads for the menu bar item: "Teslaris, 78%, Charging".
+    static func accessibilityLabel(for data: VehicleData?) -> String {
+        guard let data else { return "Teslaris" }
+        var parts = ["Teslaris", String(format: "%.0f%%", data.batteryPercentage),
+                     humanStatus(data.chargingState)]
+        if data.isAsleep { parts.append("asleep") }
+        return parts.joined(separator: ", ")
     }
 
     private func barTitle(for data: VehicleData?) -> String {
@@ -97,16 +110,19 @@ final class StatusItemController {
         let menu = NSMenu()
 
         if let data {
+            // Looked up before the image so the render can name the car.
+            let model = data.vin.flatMap { CarImage.modelName(vin: $0) }
+
             if let vin = data.vin,
                let image = carImages.image(for: vin, exteriorColor: data.exteriorColor,
                                            wheelType: data.wheelType) {
                 let item = NSMenuItem()
-                item.view = CarImageRowView(image: image)
+                item.view = CarImageRowView(image: image,
+                                            description: model.map { "Tesla \($0)" })
                 menu.addItem(item)
             }
 
             // Identity: model first, the owner's name for the car below it.
-            let model = data.vin.flatMap { CarImage.modelName(vin: $0) }
             if let model {
                 menu.addItem(rowItem("Tesla \(model)", bold: true))
             }
@@ -291,26 +307,6 @@ final class StatusItemController {
         return item
     }
 
-    /// Tesla charging_state → human label.
-    static func humanStatus(_ state: String) -> String {
-        switch state {
-        case "Charging": return "Charging"
-        case "Complete": return "Charged"
-        case "Disconnected": return "Not plugged in"
-        case "Stopped": return "Plugged in"
-        case "NoPower": return "Charger has no power"
-        case "Starting": return "Starting charge"
-        default: return state
-        }
-    }
-
-    /// "21°C" — or "70°F" when the car itself is set to Fahrenheit
-    /// (gui_settings), so the menu always matches the car's screen.
-    static func temperature(celsius: Double, unit: String?) -> String {
-        if unit == "F" { return "\(Int((celsius * 9 / 5 + 32).rounded()))°F" }
-        return "\(Int(celsius.rounded()))°C"
-    }
-
     /// "2 windows, trunk open" — nil when everything is shut (or unreported).
     static func openSummary(for data: VehicleData) -> String? {
         var parts: [String] = []
@@ -323,34 +319,28 @@ final class StatusItemController {
         return summary.prefix(1).uppercased() + String(summary.dropFirst())
     }
 
-    /// vehicle_state.software_update → menu label; nil when idle.
+    // Thin wrappers over CarFormat (TeslarisShared), so call sites and
+    // tests keep reading as they did and the unit defaults to the user's.
+
+    static func humanStatus(_ state: String) -> String {
+        CarFormat.humanStatus(state)
+    }
+
+    static func temperature(celsius: Double, unit: String?) -> String {
+        CarFormat.temperature(celsius: celsius, unit: unit)
+    }
+
     static func softwareUpdateLabel(status: String?, version: String?) -> String? {
-        guard let status, !status.isEmpty else { return nil }
-        let v = version.map { " \($0)" } ?? ""
-        switch status {
-        case "available": return "Update\(v) available"
-        case "scheduled": return "Update\(v) scheduled"
-        case "downloading", "downloading_wifi_wait": return "Update\(v) downloading"
-        case "installing": return "Update\(v) installing"
-        default: return "Update\(v) — \(status)"
-        }
+        CarFormat.softwareUpdateLabel(status: status, version: version)
     }
 
     static func shortDuration(minutes: Int) -> String {
-        if minutes < 60 { return "\(minutes)min" }
-        let h = minutes / 60, m = minutes % 60
-        return m == 0 ? "\(h)h" : "\(h)h\(m)m"
+        CarFormat.shortDuration(minutes: minutes)
     }
 
-    /// "412 km" / "256 mi"; `grouped` adds thousands separators (odometer).
     static func distance(km: Int, grouped: Bool = false,
                          unit: DistanceUnit = Preferences.distanceUnit) -> String {
-        let value = unit.convert(km: km)
-        if grouped {
-            let f = NumberFormatter(); f.numberStyle = .decimal
-            return "\(f.string(from: NSNumber(value: value)) ?? "\(value)") \(unit.suffix)"
-        }
-        return "\(value) \(unit.suffix)"
+        CarFormat.distance(km: km, grouped: grouped, unit: unit)
     }
 
     static func batteryColor(percentage: Double, charging: Bool) -> NSColor {
@@ -388,6 +378,12 @@ final class KVRowView: NSView {
         super.init(frame: NSRect(x: 0, y: 0, width: StatusItemController.rowWidth, height: height))
         wantsLayer = true
         layer?.cornerRadius = 4
+
+        // A menu item with a custom view exposes nothing to VoiceOver on its
+        // own, so without this the whole data section of the menu is silent.
+        setAccessibilityElement(true)
+        setAccessibilityRole(.staticText)
+        setAccessibilityLabel(value.map { "\(key), \($0)" } ?? key)
 
         let keyLabel = NSTextField(labelWithString: key)
         keyLabel.font = bold ? .boldSystemFont(ofSize: 13) : .systemFont(ofSize: 13)
@@ -461,6 +457,10 @@ final class BatteryBarView: NSView {
         let barHeight: CGFloat = 5
         super.init(frame: NSRect(x: 0, y: 0, width: StatusItemController.rowWidth, height: height))
         wantsLayer = true
+        // Decorative: the Battery and Credits rows above each bar already
+        // read the number, and a second element saying it again is worse
+        // for VoiceOver, not better.
+        setAccessibilityElement(false)
 
         let track = CGRect(x: sidePad, y: (height - barHeight) / 2,
                            width: StatusItemController.rowWidth - sidePad * 2, height: barHeight)
