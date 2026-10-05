@@ -16,8 +16,9 @@ final class StatusItemController {
     private let onRefresh: () -> Void
     private let onSettings: () -> Void
 
-    /// Set when a newer release exists; renders as a menu item.
-    var updateVersion: String?
+    /// Set only when Sparkle is running (a real .app bundle); the menu item
+    /// is left out entirely otherwise rather than shown dead.
+    var onCheckForUpdates: (() -> Void)?
 
     /// Vehicles on the account; more than one adds a Switch Car submenu.
     var vehicles: [VehicleSummary] = []
@@ -230,7 +231,9 @@ final class StatusItemController {
                                               color: Self.creditColor(fraction: fraction))
                 menu.addItem(barItem)
                 menu.addItem(Self.infoItem("Credits reset monthly"))
-                if credits >= UsageMeter.brakeThreshold {
+                if credits >= allowance {
+                    menu.addItem(rowItem("Automatic updates paused until credits reset"))
+                } else if credits >= UsageMeter.brakeThreshold {
                     menu.addItem(rowItem("Updates slowed until credits reset"))
                 }
             }
@@ -248,13 +251,6 @@ final class StatusItemController {
 
         menu.addItem(.separator())
 
-        if let updateVersion {
-            let update = NSMenuItem(title: "Update Available (v\(updateVersion))…",
-                                    action: #selector(updateAction), keyEquivalent: "")
-            update.target = self
-            menu.addItem(update)
-        }
-
         let refresh = NSMenuItem(title: "Refresh Now", action: #selector(refreshAction), keyEquivalent: "r")
         refresh.target = self
         menu.addItem(refresh)
@@ -262,6 +258,13 @@ final class StatusItemController {
         let settings = NSMenuItem(title: "Settings…", action: #selector(settingsAction), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+
+        if onCheckForUpdates != nil {
+            let update = NSMenuItem(title: "Check for Updates…",
+                                    action: #selector(updateAction), keyEquivalent: "")
+            update.target = self
+            menu.addItem(update)
+        }
 
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Teslaris", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
@@ -277,7 +280,7 @@ final class StatusItemController {
         guard let vin = sender.representedObject as? String, vin != activeVin else { return }
         onSelectVehicle?(vin)
     }
-    @objc private func updateAction() { NSWorkspace.shared.open(UpdateChecker.releasesPage) }
+    @objc private func updateAction() { onCheckForUpdates?() }
 
     // MARK: - Key/value rows
 

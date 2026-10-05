@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let fleetAPI = TeslaFleetAPI()
 
     private let notifier = Notifier()
-    private let updateChecker = UpdateChecker()
+    private let updater = Updater()
     private var refreshTimer: Timer?
     private var latest: VehicleData?
     private var lastError: String?
@@ -31,14 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onSettings: { [weak self] in self?.showSettings() }
         )
         statusController.onSelectVehicle = { [weak self] vin in self?.switchVehicle(to: vin) }
+        if updater.isAvailable {
+            statusController.onCheckForUpdates = { [weak self] in self?.updater.checkForUpdates() }
+        }
         statusController.render(data: nil, error: nil, authenticated: false)
         notifier.requestAuthorizationIfNeeded()
-        updateChecker.checkIfDue { [weak self] version in
-            guard let self else { return }
-            self.statusController.updateVersion = version
-            self.statusController.render(data: self.latest, error: self.lastError,
-                                         authenticated: self.source.isAuthenticated)
-        }
 
         if hasCredentials || DemoVehicleSource.enabled {
             startSession()
@@ -203,10 +200,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// menu go quieter the moment the cable goes in. Asleep is checked
     /// first and ignores the setting: a stale "Charging" state or an eager
     /// choice must never keep a sleeping car on a fast poll. Near the $10
-    /// free credit, the brake stretches everything to 30 minutes.
+    /// free credit the brake takes over: at least 30 minutes, and never
+    /// faster than the credits that are left can sustain until they reset —
+    /// a fixed 30 minutes alone would still run past the allowance if the
+    /// brake engaged early in the month. With nothing left, polling waits
+    /// for the reset.
     static func refreshInterval(for data: VehicleData?,
                                 monthlyRequests: Int,
-                                parked: RefreshInterval = Preferences.refreshInterval) -> TimeInterval {
+                                parked: RefreshInterval = Preferences.refreshInterval,
+                                now: Date = Date()) -> TimeInterval {
         let parkedInterval = TimeInterval(parked.rawValue)
         var interval = parkedInterval
         if let data {
@@ -219,7 +221,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if monthlyRequests >= UsageMeter.brakeThreshold {
-            interval = max(interval * 2, 1800)
+            let untilReset = UsageMeter.secondsLeftInMonth(from: now)
+            let remaining = UsageMeter.monthlyAllowance - monthlyRequests
+            guard remaining > 0 else { return max(untilReset, 60) }
+            interval = max(interval * 2, 1800, untilReset / Double(remaining))
         }
         return interval
     }
@@ -246,7 +251,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 onRegister: { [weak self] domain in
                     self?.registerPartnerAccount(domain: domain)
-                }
+                },
+                updater: updater
             )
         }
         settingsController?.show()

@@ -72,7 +72,6 @@
     /* Near-opaque: the sheet's top edge refracts the dark banner below the
        bar, and a thinner tint let that wash over the first link. */
     --sheet: rgba(255, 255, 255, 0.92);
-    --banner-bg: #171a20;
     --section-edge: transparent;
     --dialog-bg: #fff;
     --dialog-pre: #f4f4f4;
@@ -98,7 +97,7 @@
       --line: rgba(255, 255, 255, 0.1);
       --glass: rgba(23, 24, 28, 0.6); --glass-over-dark: rgba(0, 0, 0, 0.6);
       --sheet: rgba(34, 36, 41, 0.94);
-      --banner-bg: #2a2c31; --section-edge: rgba(255, 255, 255, 0.08);
+      --section-edge: rgba(255, 255, 255, 0.08);
       --dialog-bg: #222429; --dialog-pre: #17181c; --dialog-copy: #2c2e33;
       --backdrop: rgba(0, 0, 0, 0.6);
       --dither: #fff; --dither-opacity: 0.07;
@@ -114,7 +113,7 @@
     --line: rgba(255, 255, 255, 0.1);
     --glass: rgba(23, 24, 28, 0.6); --glass-over-dark: rgba(0, 0, 0, 0.6);
     --sheet: rgba(34, 36, 41, 0.94);
-    --banner-bg: #2a2c31; --section-edge: rgba(255, 255, 255, 0.08);
+    --section-edge: rgba(255, 255, 255, 0.08);
     --dialog-bg: #222429; --dialog-pre: #17181c; --dialog-copy: #2c2e33;
     --backdrop: rgba(0, 0, 0, 0.6);
     --dither: #fff; --dither-opacity: 0.07;
@@ -237,15 +236,6 @@
   .btn-dark:hover { opacity: 0.9; }
   .btn-light { background: var(--card); color: var(--text); }
   .btn-light:hover { background: var(--card-hover); }
-
-  /* ---- development banner ----
-     Stated plainly rather than tucked away: the app cannot be set up
-     yet, and nobody should download it expecting it to work. */
-  .devbanner {
-    background: var(--banner-bg); color: #fff; --focus: #fff;
-    font-size: 14px; line-height: 1.5; padding: 14px 0;
-  }
-  .devbanner strong { font-weight: 600; }
 
   /* ---- hero ---- */
   header { text-align: center; padding: 96px 0 0; }
@@ -653,14 +643,6 @@
   </div>
 </nav>
 
-<div class="devbanner" role="note">
-  <div class="wrap">
-    <strong>Under development.</strong> Teslaris is not yet confirmed ready to install —
-    sign-in previously failed due to a defect on Tesla's side, which Tesla has since fixed.
-    Re-verification is in progress. Downloads will appear here once it works end to end.
-  </div>
-</div>
-
 <main id="main" tabindex="-1">
 
 <header>
@@ -669,10 +651,10 @@
     <p class="sub">Battery, range and charging status at a glance. A tiny native
     macOS app — no Electron, no accounts, no subscription.</p>
     <div class="cta">
-      <a class="btn btn-light" href="#setup">How setup will work</a>
-      <a class="btn btn-light" href="https://github.com/simonbusborg/teslaris">Follow on GitHub</a>
+      <a class="btn btn-dark" href="https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg">Download for macOS</a>
+      <a class="btn btn-light" href="#setup">How setup works</a>
     </div>
-    <p class="fineprint">Free and open source · macOS 13+ · Not affiliated with Tesla</p>
+    <p class="fineprint">Free and open source · macOS 13+ · Apple silicon &amp; Intel · Not affiliated with Tesla</p>
   </div>
   <img class="hero-car" alt="Side view of a Tesla Model 3" width="1441" height="540"
     src="https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=1441&amp;bkba_opt=1">
@@ -835,17 +817,18 @@
         <div class="stepnum" aria-hidden="true">01</div>
         <div>
           <h3>Install Teslaris</h3>
-          <p>Once builds are available, you'll drag Teslaris into
-          <strong>Applications</strong> and open it; it appears in your menu bar, ready for
-          the rest of the setup. There is nothing to download yet — see the notice at the
-          top of this page.</p>
+          <p><a href="https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg">Download
+          Teslaris</a>, open the disk image and drag it into <strong>Applications</strong>.
+          Launch it and it appears in your menu bar, ready for the rest of the setup.</p>
+          <p>Every release is signed and notarized by Apple, so it opens like any other
+          app — and from then on Teslaris keeps itself up to date.</p>
           <details class="more">
-            <summary>macOS says it "cannot be opened"?</summary>
-            <p>Expected on first launch — the app isn't notarized by Apple yet. Click
-            <strong>Done</strong> (not "Move to Bin"), then go to
-            <strong>System&nbsp;Settings → Privacy&nbsp;&amp;&nbsp;Security</strong>,
-            scroll down and click <strong>Open&nbsp;Anyway</strong>.</p>
-            <p>This happens once. After that, Teslaris opens like any other app.</p>
+            <summary>Rather build it yourself?</summary>
+            <p>Clone the repository and run one make target. It needs macOS 13+ and the
+            Xcode Command Line Tools (<code>xcode-select --install</code>).</p>
+            <pre><button type="button" class="copy" aria-label="Copy build command">Copy</button><code>git clone https://github.com/simonbusborg/teslaris &amp;&amp; cd teslaris &amp;&amp; make app</code></pre>
+            <p>A local build isn't notarized, so the first launch wants a
+            right-click → <strong>Open</strong>.</p>
           </details>
         </div>
       </div>
@@ -989,8 +972,8 @@
       <p>No — four layers prevent it. Polling adapts to state (15 min parked, 5→1 min
       while charging, 30 min asleep); the menu shows a credit gauge — the free monthly
       credit covers ~5,000 requests, shown on a progress bar that resets monthly; past
-      ~84% of the credits, Teslaris stretches all polling to 30 minutes until they
-      reset; and Tesla requires a payment method on the app with a billing limit you
+      ~84% of the credits, Teslaris stretches all polling to 30 minutes or more — slow
+      enough that what is left lasts until they reset — and pauses it if they run out; and Tesla requires a payment method on the app with a billing limit you
       set, which it never charges past. The $10 monthly individual-developer discount
       covers normal use, so the practical cost is around zero — but note the payment
       method is mandatory: without one Tesla disables the app and sign-in fails.</p>

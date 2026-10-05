@@ -2,22 +2,33 @@
 
 ## Before first signed release
 
-- [ ] Confirm real Tesla data renders in the app (not just that the OAuth
-      grant succeeds) — SB Auto's authorization was confirmed by Tesla
-      2026-10-05; still need to see battery/range/charging data actually
-      show up in the menu bar against a real vehicle.
-- [ ] Flip `docs/index.html`'s dev banner and README's status section
-      once the above is confirmed — currently say "not yet confirmed
-      ready" pending that test.
-- [ ] Code signing + notarization: secrets already exist at
-      `/home/simon/.apple-signing/` (same Developer ID used for Polaris),
-      just need `gh secret set` on this repo —
-      `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`, `NOTARY_APPLE_ID`,
-      `NOTARY_APP_PASSWORD`, `NOTARY_TEAM_ID`. Workflow already supports
-      it (`.github/workflows/release.yml:55-92`), just never switched on.
+- [x] Confirm real Tesla data renders in the app — confirmed 2026-10-05
+      against a real Model Y (battery, range, charger status, temperature,
+      doors, odometer, credits all correct). Sign-in is fully working.
+- [x] Dev banner and README status section removed 2026-10-05; the site
+      and README now carry a real download link and say releases are
+      notarized and self-updating. That is only true from the first signed
+      release on, so the site must go live together with that release,
+      not before it.
+- [x] Code signing + notarization: all 5 secrets set on
+      `simonbusborg/teslaris` 2026-10-05 (`MACOS_CERT_P12`,
+      `MACOS_CERT_PASSWORD`, `NOTARY_APPLE_ID`, `NOTARY_APP_PASSWORD`,
+      `NOTARY_TEAM_ID`, Team ID `C8Y7YNZN9R`). Not yet verified by an
+      actual signed release build — do that on the next `make release`.
+- [x] In-app updates via Sparkle, added 2026-10-05: `Updater.swift`,
+      Settings UI, menu item, `Package.swift`/`Makefile`/`release.yml`
+      wiring, `docs/appcast.xml` seed, `SPARKLE_PRIVATE_KEY` secret set
+      (reuses Polaris's EdDSA key — same developer, same trust boundary
+      as the shared Developer ID cert). Replaces the old manual
+      GitHub-releases `UpdateChecker`. **Not yet built or run anywhere**
+      — needs a real `make app` / `make release` on Simon's Mac before
+      trusting any of it; this was written blind on a Linux box with no
+      Swift toolchain.
 - [ ] Real screenshot for the docs site, taken from Simon's Mac
       (Polaris already has one; Teslaris's docs still need it).
-- [ ] Cut the first signed release (`make release VERSION=x.y.z`).
+- [ ] Cut the first signed release (`make release VERSION=x.y.z`) — this
+      is also the first real end-to-end test of both the signing secrets
+      and the Sparkle wiring above.
 
 ## After shipping
 
@@ -34,8 +45,6 @@
 
 ## Optional, not yet decided
 
-- [ ] Sparkle auto-update feed (Polaris has `SUFeedURL`/`SUPublicEDKey`
-      in its Info.plist; Teslaris has neither).
 - [ ] Homebrew cask + tap, as Polaris's release workflow publishes.
 
 ## Read-only Fleet API ideas (no cost beyond the request itself)

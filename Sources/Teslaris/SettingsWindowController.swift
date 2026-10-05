@@ -26,9 +26,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     private let notifyProblemCheckbox = NSButton(checkboxWithTitle: "Charging problems", target: nil, action: nil)
     private let notifyLowCheckbox = NSButton(checkboxWithTitle: "Low battery at", target: nil, action: nil)
     private let lowThresholdPopup = NSPopUpButton()
+    private let autoCheckCheckbox = NSButton(checkboxWithTitle: "Check automatically", target: nil, action: nil)
+    private let autoInstallCheckbox = NSButton(checkboxWithTitle: "Download and install automatically", target: nil, action: nil)
 
     /// Held so the key-hosting action can show progress on it.
     private weak var keyHostingButton: NSButton?
+    /// Nil when Sparkle isn't running (not a real .app bundle, e.g. `swift
+    /// run`) — the whole Updates row is then shown disabled rather than left
+    /// out, since removing it would shift every topPadding index below it.
+    private let updater: Updater?
 
     /// Inline verdicts, so a wrong value is caught where it is typed
     /// rather than several steps later.
@@ -44,10 +50,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     private let onRegister: (String) -> Void
 
     init(onSave: @escaping () -> Void, onSignIn: @escaping () -> Void,
-         onRegister: @escaping (String) -> Void) {
+         onRegister: @escaping (String) -> Void, updater: Updater? = nil) {
         self.onSave = onSave
         self.onSignIn = onSignIn
         self.onRegister = onRegister
+        self.updater = (updater?.isAvailable == true) ? updater : nil
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 300),
@@ -142,6 +149,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         let registerButton = NSButton(title: "Register App with Tesla",
                                       target: self, action: #selector(registerAction))
 
+        autoCheckCheckbox.target = self;   autoCheckCheckbox.action = #selector(updatesChanged)
+        autoInstallCheckbox.target = self; autoInstallCheckbox.action = #selector(updatesChanged)
+        let checkForUpdatesButton = NSButton(title: "Check for Updates…",
+                                             target: self, action: #selector(checkForUpdatesAction))
+        for control in [autoCheckCheckbox, autoInstallCheckbox, checkForUpdatesButton] {
+            control.isEnabled = (updater != nil)
+        }
+
         // Ordered as the setup guide runs: get a key domain, take it to
         // Tesla, come back with the credentials it gives you.
         for status in [domainStatus, credentialStatus] {
@@ -172,7 +187,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
             [label("Notify about:"), notifyStartCheckbox],
             [NSGridCell.emptyContentView, notifyDoneCheckbox],
             [NSGridCell.emptyContentView, notifyProblemCheckbox],
-            [NSGridCell.emptyContentView, lowRow]
+            [NSGridCell.emptyContentView, lowRow],
+            [label("Updates:"), autoCheckCheckbox],
+            [NSGridCell.emptyContentView, autoInstallCheckbox],
+            [NSGridCell.emptyContentView, checkForUpdatesButton]
         ])
         grid.rowSpacing = 12
         grid.columnSpacing = 10
@@ -181,7 +199,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         for control in [regionPopup, displayPopup, unitPopup, refreshPopup, refreshHelp,
                         launchCheckbox, generateKeysButton, registerButton, domainStatus,
                         credentialStatus, notifyStartCheckbox, notifyDoneCheckbox,
-                        notifyProblemCheckbox, lowRow] as [NSView] {
+                        notifyProblemCheckbox, lowRow, autoCheckCheckbox, autoInstallCheckbox,
+                        checkForUpdatesButton] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
         grid.row(at: 1).topPadding = -6    // verdict hugs the domain field
@@ -196,6 +215,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         grid.row(at: 15).topPadding = -6
         grid.row(at: 16).topPadding = -6
         grid.row(at: 17).topPadding = -6
+        grid.row(at: 18).topPadding = 10   // updates
+        grid.row(at: 19).topPadding = -6
+        grid.row(at: 20).topPadding = -6
 
         grid.translatesAutoresizingMaskIntoConstraints = false
 
@@ -247,10 +269,23 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         lowThresholdPopup.selectItem(at: LowBatteryWatch.thresholds
             .firstIndex(of: Preferences.lowBatteryThreshold) ?? 0)
         lowThresholdPopup.isEnabled = (notifyLowCheckbox.state == .on)
+        if let updater {
+            autoCheckCheckbox.state = updater.automaticallyChecks ? .on : .off
+            autoInstallCheckbox.state = updater.automaticallyDownloads ? .on : .off
+        }
     }
 
     @objc private func lowBatteryToggled() {
         lowThresholdPopup.isEnabled = (notifyLowCheckbox.state == .on)
+    }
+
+    @objc private func updatesChanged() {
+        updater?.automaticallyChecks = (autoCheckCheckbox.state == .on)
+        updater?.automaticallyDownloads = (autoInstallCheckbox.state == .on)
+    }
+
+    @objc private func checkForUpdatesAction() {
+        updater?.checkForUpdates()
     }
 
     // MARK: - Live validation

@@ -7,12 +7,6 @@ import TeslarisShared
 /// stays here to cover StatusItemController's wrapper over them.
 final class FormattingTests: XCTestCase {
 
-    func testVersionComparison() {
-        XCTAssertTrue(UpdateChecker.isVersion("2.0.0", newerThan: "1.9.9"))
-        XCTAssertTrue(UpdateChecker.isVersion("1.10.0", newerThan: "1.9.1"))
-        XCTAssertFalse(UpdateChecker.isVersion("1.0.0", newerThan: "1.0.0"))
-    }
-
     func testDistanceFormatting() {
         XCTAssertEqual(StatusItemController.distance(km: 412, unit: .kilometers), "412 km")
         XCTAssertEqual(StatusItemController.distance(km: 412, unit: .miles), "256 mi")

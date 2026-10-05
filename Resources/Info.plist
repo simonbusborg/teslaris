@@ -24,5 +24,11 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© Simon Busborg. Not affiliated with Tesla.</string>
+	<key>SUFeedURL</key>
+	<string>https://simonbusborg.github.io/teslaris/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>D0Pr3zqX74d8fY5dTAuyy53V8Wig1Rlu7fH1ecOmIrE=</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<false/>
 </dict>
 </plist>

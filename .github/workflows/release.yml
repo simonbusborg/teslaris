@@ -12,6 +12,7 @@ permissions:
 # them the release falls back to the old ad-hoc-signed build.
 env:
   HAS_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
+  HAS_SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
 
 jobs:
   build-and-release:
@@ -104,6 +105,42 @@ jobs:
             Teslaris.zip
           generate_release_notes: true
 
+      # Runs after the release exists: the appcast points at the release's
+      # download URL, and a broken feed shouldn't hold up shipping the build
+      # itself. Sparkle only trusts an appcast entry it can verify against
+      # the EdDSA public key baked into Info.plist, so the zip is signed
+      # here and the feed regenerated from that signature. The commit goes
+      # to main, which is what GitHub Pages serves the feed from.
+      - name: Sign the build for Sparkle and publish the appcast
+        if: ${{ env.HAS_SPARKLE_KEY == 'true' }}
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -x
+          SIGN=$(find .build/artifacts -type f -name sign_update | head -1)
+          test -n "$SIGN" || { echo "sign_update missing from the Sparkle artifact"; exit 1; }
+          chmod +x "$SIGN"
+          # -s is deprecated and now exits non-zero; the key goes in a file.
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > sparkle.key
+          ATTRS=$("$SIGN" Teslaris.zip --ed-key-file sparkle.key)
+          rm -f sparkle.key
+          # sign_update prints its errors on stdout, so a bad key ends up
+          # inside ATTRS and gets written into the appcast as garbage
+          # attributes. Refuse anything that isn't a signature.
+          case "$ATTRS" in
+            sparkle:edSignature=*) ;;
+            *) echo "sign_update did not return a signature: $ATTRS"; exit 1 ;;
+          esac
+          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info.plist)
+          git fetch origin main
+          git checkout -B main origin/main
+          python3 scripts/update_appcast.py "$GITHUB_REF_NAME" "$BUILD" "$ATTRS"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml
+          git commit -m "Publish $GITHUB_REF_NAME to the Sparkle appcast"
+          git push origin main
+
       # Reads back what the world can actually see. The upload step can
       # succeed while an asset is missing from the release — a name typo, a
       # race with a re-run — and only this step would notice.
@@ -124,5 +161,14 @@ jobs:
           if [ "$HAS_SIGNING" = "true" ]; then
             xcrun stapler validate verify/Teslaris.app \
               || { echo "Teslaris.app carries no notarization ticket"; exit 1; }
+          fi
+          if [ "$HAS_SPARKLE_KEY" = "true" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            git fetch origin main
+            git show origin/main:docs/appcast.xml > feed.xml
+            grep -q "<sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>" feed.xml \
+              || { echo "appcast has no entry for $VERSION"; exit 1; }
+            grep -q 'sparkle:edSignature="' feed.xml \
+              || { echo "appcast entry for $VERSION carries no signature"; exit 1; }
           fi
           echo "release $GITHUB_REF_NAME is complete: dmg and zip published, universal"

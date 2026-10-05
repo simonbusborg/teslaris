@@ -14,29 +14,22 @@ Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 [simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
 Pending work and feature parity with Polaris: [ROADMAP.md](ROADMAP.md).
 
-## Status: under development
-
-**Not yet confirmed ready to install.** The app itself is complete —
-menu, data parsing, notifications, cost controls and the whole setup flow
-are built and tested. Sign-in previously failed with "No policy rules" —
-a Tesla-side provisioning defect (malformed API resource, no policy
-attached) affecting apps created between July 30 and August 3, 2025.
-Tesla fixed the underlying configuration and repaired affected apps on
-August 3, 2025, and closed the support case. Sign-in has not yet been
-re-verified end to end since the fix.
-
-Everything else can be explored today without a Tesla account, via demo
-mode or the mock server (see below). Builds will be published once
-sign-in is confirmed working end to end.
-
 ## Install
+
+[Download the latest Teslaris](https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg),
+open the disk image and drag it into Applications. Releases are signed
+and notarized by Apple, and the app keeps itself up to date from there
+(Settings → Updates, or **Check for Updates…** in the menu).
+
+The setup itself — one free Tesla developer app, about ten minutes — is
+walked through in the [setup guide](https://simonbusborg.github.io/teslaris/#setup).
+Everything can also be explored without a Tesla account, via demo mode or
+the mock server (see below).
 
 Releases are built by GitHub Actions, cut with
 `make release VERSION=x.y.z`, which bumps `Info.plist`, tags and pushes.
-macOS blocks the first launch of unsigned builds ("Apple could not
-verify…"): click **Done**, then **System Settings → Privacy & Security →
-Open Anyway**. On macOS 14 and earlier, **right-click → Open → Open**
-also works. This happens once.
+A local `make app` build is ad-hoc signed, not notarized: the first
+launch wants a right-click → **Open**.
 
 ## Features
 
@@ -60,7 +53,8 @@ also works. This happens once.
   and battery) — the menu shows the last known data, marked as such
 - Choose what the menu bar shows; the icon reflects charging state
 - Credentials and session in the macOS Keychain, never in plaintext
-- Launch at login (optional), once-a-day update check against GitHub
+- Launch at login (optional), and in-app updates — checked and installed
+  from Settings, or automatically if you turn that on
 - A single small binary
 
 ## Why "bring your own developer app"?
@@ -164,7 +158,8 @@ Teslaris is built so spending **cannot** rocket:
   the free monthly credit covers ~5,000 requests, so one request is one
   credit. It resets monthly, and no money appears in the app.
 - **A brake.** Past ~84% of the monthly credits, all polling stretches
-  to 30 min until they reset, and the menu says so.
+  to 30 min or more — slow enough that what is left lasts until they
+  reset — and pauses if they run out. The menu says so either way.
 - **A billing limit.** Tesla requires a payment method on the developer
   app (without one the app is disabled and sign-in fails). Set a **billing
   limit** in the same place — Tesla will never charge past it, so it caps

@@ -6,6 +6,12 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
+    dependencies: [
+        // In-app updates. Sparkle only installs a build whose Developer ID
+        // signature matches the running one, so this is only possible now
+        // that releases are signed.
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
+    ],
     targets: [
         // Foundation-only formatting the app depends on. Kept free of AppKit
         // so it builds and tests on any platform, not just a Mac.
@@ -15,7 +21,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "Teslaris",
-            dependencies: ["TeslarisShared"],
+            dependencies: [
+                .product(name: "Sparkle", package: "Sparkle"),
+                "TeslarisShared"
+            ],
             path: "Sources/Teslaris"
         ),
         .testTarget(

@@ -63,9 +63,12 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         let warned = Preferences.lowBatteryWarned(vin: vin)
         // Plugged in counts as charging here, not only "Charging": a Tesla
         // waiting for scheduled off-peak charging reports "Stopped", and
-        // telling that owner to plug in would be wrong.
+        // telling that owner to plug in would be wrong. "NoPower" is the
+        // exception — the cable is in but nothing is coming through it, so
+        // a draining battery still deserves the reminder.
+        let pluggedInWithPower = new.isPluggedIn == true && new.chargingState != "NoPower"
         let outcome = LowBatteryWatch.evaluate(percentage: new.batteryPercentage,
-                                               isCharging: new.isCharging || new.isPluggedIn == true,
+                                               isCharging: new.isCharging || pluggedInWithPower,
                                                threshold: Preferences.lowBatteryThreshold,
                                                warned: warned)
         // The armed/disarmed state is tracked even with the reminder switched
