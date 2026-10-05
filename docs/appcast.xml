@@ -12,5 +12,15 @@
     <description>Updates for Teslaris, your Tesla in the menu bar.</description>
     <language>en</language>
     <!-- items -->
+    <item>
+      <title>0.5.0</title>
+      <pubDate>Mon, 05 Oct 2026 16:51:14 +0000</pubDate>
+      <sparkle:version>12</sparkle:version>
+      <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://simonbusborg.github.io/teslaris/notes/v0.5.0.html</sparkle:releaseNotesLink>
+      <enclosure url="https://github.com/simonbusborg/teslaris/releases/download/v0.5.0/Teslaris.zip"
+                 type="application/octet-stream" sparkle:edSignature="mfciDKj97nl/K0yEDevcZFHKq0pMEo3WTUx/fPCAZ4zQXZ7RGvxCVQ/kH2CwVBDhm3VPBDZxjbDJZFrDANbRCg==" length="1474930" />
+    </item>
   </channel>
 </rss>

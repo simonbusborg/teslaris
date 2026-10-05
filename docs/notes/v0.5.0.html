@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Teslaris 0.5.0</title>
+<style>
+  /* Sparkle renders this in a small WebView that follows the system
+     appearance, so the page has to work in both and stay legible at
+     roughly 500 points wide. */
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    padding: 18px 20px 22px;
+    font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    color: #1d1d1f;
+    background: #fff;
+  }
+  h1 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
+  .date { margin: 2px 0 16px; font-size: 12px; color: #6e6e73; }
+  ul { margin: 0; padding-left: 18px; }
+  li { margin-bottom: 7px; }
+  a { color: #0a6cff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  footer { margin-top: 18px; font-size: 12px; color: #6e6e73; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f2f2f7; background: #1e1e1e; }
+    .date, footer { color: #9a9aa0; }
+    a { color: #6cb1ff; }
+  }
+</style>
+</head>
+<body>
+  <h1>Teslaris 0.5.0</h1>
+  <p class="date">October 5, 2026</p>
+  <ul>
+      <li><strong>Updates inside the app</strong> — Teslaris now checks for new versions and installs them itself, from Settings or the menu, and automatically if you turn that on. Releases are signed and notarized by Apple, so they open without the Gatekeeper detour.</li>
+      <li><strong>Low-battery reminder</strong> — a notification when the battery drops below a level you choose, once per discharge rather than on every refresh.</li>
+      <li><strong>Your own refresh pace</strong> — choose how often a parked car is checked, from every minute to every 15 minutes.</li>
+      <li><strong>Polling that stays inside the free credits</strong> — near the monthly allowance, updates slow down just enough for the remaining credits to last until they reset, and pause if they run out.</li>
+  </ul>
+  <footer><a href="https://github.com/simonbusborg/teslaris/compare/v0.4.1...v0.5.0">All changes on GitHub</a></footer>
+</body>
+</html>
