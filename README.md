@@ -2,6 +2,8 @@
 
 Your Tesla, in the menu bar.
 
+[![Downloads](https://img.shields.io/github/downloads/simonbusborg/teslaris/total?label=downloads&color=blue)](https://github.com/simonbusborg/teslaris/releases)
+
 Teslaris is a tiny native macOS app that shows your Tesla's battery, range,
 and charging status in the menu bar. Pure AppKit — no Electron, no SwiftUI,
 no background services. It talks only to Tesla: the official Fleet API,
