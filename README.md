@@ -12,20 +12,22 @@ Tesla — nowhere else, and there is nothing to subscribe to.
 Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 (the same app for Polestar). Docs and setup guide:
 [simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
+Pending work and feature parity with Polaris: [ROADMAP.md](ROADMAP.md).
 
 ## Status: under development
 
-**Not ready to install.** The app itself is complete — menu, data
-parsing, notifications, cost controls and the whole setup flow are built
-and tested — but sign-in cannot be completed. Tesla's authorisation step
-fails with "No policy rules" for correctly configured applications,
-because the API resource an application is bound to can carry no policy
-at all. That is a defect on Tesla's side with no workaround available to
-us; a support case is open.
+**Not yet confirmed ready to install.** The app itself is complete —
+menu, data parsing, notifications, cost controls and the whole setup flow
+are built and tested. Sign-in previously failed with "No policy rules" —
+a Tesla-side provisioning defect (malformed API resource, no policy
+attached) affecting apps created between July 30 and August 3, 2025.
+Tesla fixed the underlying configuration and repaired affected apps on
+August 3, 2025, and closed the support case. Sign-in has not yet been
+re-verified end to end since the fix.
 
 Everything else can be explored today without a Tesla account, via demo
 mode or the mock server (see below). Builds will be published once
-sign-in works end to end.
+sign-in is confirmed working end to end.
 
 ## Install
 
