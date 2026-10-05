@@ -59,6 +59,12 @@ the entries for a version into the notes Sparkle shows in its update panel.
   with battery, range, charging state and the car itself. They show what
   the app last fetched, so they cost no extra Fleet API credits, and a
   click opens the menu.
+- **Low tyre pressure warning** (v0.6.0) — a notification when the car
+  flags a tyre as low, once rather than on every refresh, and a row in the
+  menu with the pressure for as long as the car keeps flagging it.
+- **Car left unlocked** (v0.6.0) — a notification when the car has been
+  sitting unlocked with nobody in it for ten minutes. Each of the two has
+  its own switch in Settings.
 - **Updates inside the app** (v0.5.0) — Teslaris now checks for new
   versions and installs them itself, from Settings or the menu, and
   automatically if you turn that on. Releases are signed and notarized by

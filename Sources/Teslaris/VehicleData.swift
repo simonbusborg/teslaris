@@ -50,6 +50,16 @@ struct VehicleData {
     /// vehicle_config values feeding the car image (paint and wheels).
     var exteriorColor: String?
     var wheelType: String?
+    /// vehicle_state.is_user_present — someone is sitting in the car.
+    var userPresent: Bool?
+    /// Wheels the car itself flags as low (tpms_soft/hard_warning_*). Nil
+    /// when the response carries no flags at all: unknown, not "all fine".
+    var lowTyres: [Wheel]?
+    /// Last pressure the car saw per wheel, in bar as the API reports it.
+    /// A wheel is missing until the car has a reading for it.
+    var tyrePressuresBar: [Wheel: Double] = [:]
+    /// gui_settings.gui_tirepressure_units: "Bar" or "Psi".
+    var tyrePressureUnit: String?
 
     var isCharging: Bool { chargingState == "Charging" || chargingState == "Starting" }
 
@@ -66,6 +76,23 @@ struct VehicleData {
         var copy = self
         copy.isAsleep = true
         return copy
+    }
+}
+
+/// A wheel, keyed by the suffix Tesla's tpms_* fields use.
+enum Wheel: String, CaseIterable {
+    case frontLeft = "fl"
+    case frontRight = "fr"
+    case rearLeft = "rl"
+    case rearRight = "rr"
+
+    var title: String {
+        switch self {
+        case .frontLeft: return "Front left"
+        case .frontRight: return "Front right"
+        case .rearLeft: return "Rear left"
+        case .rearRight: return "Rear right"
+        }
     }
 }
 

@@ -26,6 +26,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     private let notifyProblemCheckbox = NSButton(checkboxWithTitle: "Charging problems", target: nil, action: nil)
     private let notifyLowCheckbox = NSButton(checkboxWithTitle: "Low battery at", target: nil, action: nil)
     private let lowThresholdPopup = NSPopUpButton()
+    private let notifyTyreCheckbox = NSButton(checkboxWithTitle: "Low tyre pressure", target: nil, action: nil)
+    private let notifyUnlockedCheckbox = NSButton(checkboxWithTitle: "Car left unlocked", target: nil, action: nil)
     private let autoCheckCheckbox = NSButton(checkboxWithTitle: "Check automatically", target: nil, action: nil)
     private let autoInstallCheckbox = NSButton(checkboxWithTitle: "Download and install automatically", target: nil, action: nil)
 
@@ -188,6 +190,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
             [NSGridCell.emptyContentView, notifyDoneCheckbox],
             [NSGridCell.emptyContentView, notifyProblemCheckbox],
             [NSGridCell.emptyContentView, lowRow],
+            [NSGridCell.emptyContentView, notifyTyreCheckbox],
+            [NSGridCell.emptyContentView, notifyUnlockedCheckbox],
             [label("Updates:"), autoCheckCheckbox],
             [NSGridCell.emptyContentView, autoInstallCheckbox],
             [NSGridCell.emptyContentView, checkForUpdatesButton]
@@ -199,7 +203,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         for control in [regionPopup, displayPopup, unitPopup, refreshPopup, refreshHelp,
                         launchCheckbox, generateKeysButton, registerButton, domainStatus,
                         credentialStatus, notifyStartCheckbox, notifyDoneCheckbox,
-                        notifyProblemCheckbox, lowRow, autoCheckCheckbox, autoInstallCheckbox,
+                        notifyProblemCheckbox, lowRow, notifyTyreCheckbox,
+                        notifyUnlockedCheckbox, autoCheckCheckbox, autoInstallCheckbox,
                         checkForUpdatesButton] as [NSView] {
             grid.cell(for: control)?.xPlacement = .leading
         }
@@ -269,6 +274,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         lowThresholdPopup.selectItem(at: LowBatteryWatch.thresholds
             .firstIndex(of: Preferences.lowBatteryThreshold) ?? 0)
         lowThresholdPopup.isEnabled = (notifyLowCheckbox.state == .on)
+        notifyTyreCheckbox.state = Preferences.notifyTyrePressure ? .on : .off
+        notifyUnlockedCheckbox.state = Preferences.notifyUnlocked ? .on : .off
         if let updater {
             autoCheckCheckbox.state = updater.automaticallyChecks ? .on : .off
             autoInstallCheckbox.state = updater.automaticallyDownloads ? .on : .off
@@ -403,6 +410,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
             Preferences.refreshInterval = RefreshInterval.allCases[refreshPopup.indexOfSelectedItem]
         }
         Preferences.notifyLowBattery = (notifyLowCheckbox.state == .on)
+        Preferences.notifyTyrePressure = (notifyTyreCheckbox.state == .on)
+        Preferences.notifyUnlocked = (notifyUnlockedCheckbox.state == .on)
         if lowThresholdPopup.indexOfSelectedItem >= 0 {
             Preferences.lowBatteryThreshold = LowBatteryWatch.thresholds[lowThresholdPopup.indexOfSelectedItem]
         }

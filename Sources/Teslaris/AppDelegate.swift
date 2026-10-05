@@ -184,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyAsleep() {
         if let latest {
             self.latest = latest.asAsleep()
+            notifier.vehicleIsAsleep(cached: latest)
         }
         lastError = nil
         statusController.render(data: latest, error: nil, authenticated: true)
