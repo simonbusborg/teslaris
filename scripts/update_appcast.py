@@ -15,9 +15,9 @@ tag, build, attrs = sys.argv[1], sys.argv[2], sys.argv[3]
 version = tag[1:] if tag.startswith("v") else tag
 date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
 base = "https://github.com/simonbusborg/teslaris/releases"
-# No custom release-notes pages — the GitHub release itself is what
-# Sparkle's update panel opens.
-notes = f"{base}/tag/{tag}"
+# The notes page lives beside the appcast on Pages; linking the GitHub
+# release instead renders the whole site inside Sparkle's panel.
+notes = f"https://simonbusborg.github.io/teslaris/notes/{tag}.html"
 
 item = f"""    <item>
       <title>{version}</title>

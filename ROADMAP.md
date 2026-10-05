@@ -55,6 +55,24 @@
 - [ ] `dx`/warranty info
 - [ ] vehicles-list `state` field, to distinguish asleep from offline
 
+## Shipped
+
+Every entry carries the version it shipped in; the release workflow turns
+the entries for a version into the notes Sparkle shows in its update panel.
+
+- **Updates inside the app** (v0.5.0) — Teslaris now checks for new
+  versions and installs them itself, from Settings or the menu, and
+  automatically if you turn that on. Releases are signed and notarized by
+  Apple, so they open without the Gatekeeper detour.
+- **Low-battery reminder** (v0.5.0) — a notification when the battery drops
+  below a level you choose, once per discharge rather than on every
+  refresh.
+- **Your own refresh pace** (v0.5.0) — choose how often a parked car is
+  checked, from every minute to every 15 minutes.
+- **Polling that stays inside the free credits** (v0.5.0) — near the
+  monthly allowance, updates slow down just enough for the remaining
+  credits to last until they reset, and pause if they run out.
+
 ## Explicitly out of scope
 
 Vehicle commands (`vehicle_charging_cmds`) and location
