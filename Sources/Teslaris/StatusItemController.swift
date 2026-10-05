@@ -20,6 +20,10 @@ final class StatusItemController {
     /// is left out entirely otherwise rather than shown dead.
     var onCheckForUpdates: (() -> Void)?
 
+    /// Called when a car render has arrived, after the menu was redrawn
+    /// with it — the widget wants the same picture.
+    var onCarImageLoaded: (() -> Void)?
+
     /// Vehicles on the account; more than one adds a Switch Car submenu.
     var vehicles: [VehicleSummary] = []
     var activeVin: String?
@@ -50,7 +54,22 @@ final class StatusItemController {
         carImages.onLoad = { [weak self] in
             guard let self, let last = self.lastRender else { return }
             self.render(data: last.data, error: last.error, authenticated: last.authenticated)
+            self.onCarImageLoaded?()
         }
+    }
+
+    /// The car render as the widget wants it, nil until it has loaded.
+    func widgetImage(for data: VehicleData) -> Data? {
+        guard let vin = data.vin, !vin.isEmpty else { return nil }
+        return carImages.widgetPNG(for: vin, exteriorColor: data.exteriorColor,
+                                   wheelType: data.wheelType)
+    }
+
+    /// Opens the menu as if the icon had been clicked. A click on the
+    /// widget lands here: an LSUIElement app has no window to bring forward,
+    /// so the menu is the only thing there is to open.
+    func popMenu() {
+        statusItem.button?.performClick(nil)
     }
 
     // MARK: - Rendering

@@ -24,6 +24,24 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© Simon Busborg. Not affiliated with Tesla.</string>
+	<!-- Substituted by the Makefile from TEAM_ID; empty in a build that has
+	     no Team ID to prefix it with. The app and the widget read the
+	     same key so neither hard-codes a Team ID. -->
+	<key>TeslarisAppGroup</key>
+	<string>__APP_GROUP__</string>
+	<!-- Clicking the widget opens teslaris://open, which drops the menu bar
+	     menu down rather than bringing up a window this app doesn't have. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.weareheavy.teslaris</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>teslaris</string>
+			</array>
+		</dict>
+	</array>
 	<key>SUFeedURL</key>
 	<string>https://simonbusborg.github.io/teslaris/appcast.xml</string>
 	<key>SUPublicEDKey</key>

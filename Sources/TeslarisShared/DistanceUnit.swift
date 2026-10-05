@@ -11,8 +11,9 @@ import Foundation
 
 /// The raw values are what sits in UserDefaults and double as the Settings
 /// titles, so renaming a case's string would silently reset every stored
-/// preference to kilometers.
-public enum DistanceUnit: String, CaseIterable {
+/// preference to kilometers. Codable because the unit travels to the widget
+/// inside the snapshot.
+public enum DistanceUnit: String, CaseIterable, Codable {
     case kilometers = "Kilometers (km)"
     case miles = "Miles (mi)"
 

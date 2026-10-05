@@ -76,10 +76,15 @@ jobs:
             | awk -F'"' '/Developer ID Application/ {print $2; exit}')
           echo "IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
+      # TEAM_ID prefixes the App Group the widget reads through. Only the
+      # signed build gets it: an ad-hoc build claiming a group has no team
+      # to validate it against, and its widget is then denied every read.
       - name: Build Teslaris.app
+        env:
+          TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
         run: |
           if [ "$HAS_SIGNING" = "true" ]; then
-            make app IDENTITY="$IDENTITY"
+            make app IDENTITY="$IDENTITY" TEAM_ID="$TEAM_ID"
           else
             make app
           fi
@@ -161,7 +166,14 @@ jobs:
           ditto -x -k Teslaris.zip verify
           lipo verify/Teslaris.app/Contents/MacOS/Teslaris -verify_arch arm64 x86_64 \
             || { echo "Teslaris.app is not a universal binary"; exit 1; }
+          test -d verify/Teslaris.app/Contents/PlugIns/TeslarisWidget.appex \
+            || { echo "Teslaris.app carries no widget extension"; exit 1; }
           if [ "$HAS_SIGNING" = "true" ]; then
+            # The widget is nothing without its App Group; say so here
+            # rather than on someone's desktop.
+            codesign -d --entitlements - verify/Teslaris.app/Contents/PlugIns/TeslarisWidget.appex 2>/dev/null \
+              | grep -q "group.com.weareheavy.teslaris" \
+              || { echo "the widget is not signed with the App Group"; exit 1; }
             xcrun stapler validate verify/Teslaris.app \
               || { echo "Teslaris.app carries no notarization ticket"; exit 1; }
           fi

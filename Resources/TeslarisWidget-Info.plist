@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.weareheavy.teslaris.widget</string>
+	<key>CFBundleName</key>
+	<string>TeslarisWidget</string>
+	<key>CFBundleDisplayName</key>
+	<string>Teslaris</string>
+	<key>CFBundleExecutable</key>
+	<string>TeslarisWidget</string>
+	<!-- An .appex is an XPC bundle, not an application. Getting this wrong
+	     is one of the ways the extension is silently never loaded. -->
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<!-- Substituted by the Makefile from the app's own Info.plist. Hardcoded,
+	     these drifted the moment a release was cut: `make release` bumps the
+	     app and knew nothing about the extension beside it, so the appex kept
+	     claiming whatever version it was written with. -->
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__BUILD__</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<!-- Substituted by the Makefile from TEAM_ID; empty in a build that has
+	     no Team ID to prefix it with. See scripts/make-entitlements.sh. -->
+	<key>TeslarisAppGroup</key>
+	<string>__APP_GROUP__</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+</dict>
+</plist>

@@ -120,6 +120,8 @@ final class CarImageLoader {
 
     var onLoad: (() -> Void)?
     private var cache: [String: NSImage] = [:]
+    /// The same renders as PNG, trimmed for the widget.
+    private var widgetCache: [String: Data] = [:]
     private var inflight: Set<String> = []
 
     func image(for vin: String, exteriorColor: String? = nil,
@@ -141,6 +143,30 @@ final class CarImageLoader {
             }
         }.resume()
         return nil
+    }
+
+    /// The render for the widget: PNG bytes of the band the car actually
+    /// occupies, since the widget scales the image to fit and the
+    /// compositor's transparent letterboxing would shrink the car to a
+    /// third of the space. nil until the image has loaded — this never
+    /// starts a download of its own, the menu already has.
+    func widgetPNG(for vin: String, exteriorColor: String? = nil,
+                   wheelType: String? = nil) -> Data? {
+        guard let url = CarImage.url(vin: vin, exteriorColor: exteriorColor,
+                                     wheelType: wheelType) else { return nil }
+        let key = url.absoluteString
+        if let data = widgetCache[key] { return data }
+        guard let image = cache[key],
+              let full = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        else { return nil }
+        // Same band CarImageRowView draws, in CGImage's top-left coordinates.
+        let band = CGRect(x: 0, y: CGFloat(full.height) * 0.18,
+                          width: CGFloat(full.width), height: CGFloat(full.height) * 0.60)
+        guard let cropped = full.cropping(to: band),
+              let png = NSBitmapImageRep(cgImage: cropped)
+                  .representation(using: .png, properties: [:]) else { return nil }
+        widgetCache[key] = png
+        return png
     }
 }
 
