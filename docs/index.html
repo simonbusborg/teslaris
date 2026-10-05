@@ -528,41 +528,85 @@
   details p a { color: var(--text); }
 
   /* ---- widgets ----
-     Drawn, like the menu above: three tiles at the sizes macOS gives a
-     small, medium and large widget. Always dark, whatever the page theme —
-     they stand in for something sitting on a desktop, not for page chrome. */
-  .wg-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
-  .wg {
-    box-sizing: border-box; flex: none; padding: 15px 16px; border-radius: 22px;
-    background: #1c1c1e; color: #fff; display: flex; flex-direction: column;
-    font-size: 11px; line-height: 1.3; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+     Drawn, like the menu above, and for the same reason: a screenshot goes
+     stale the moment the layout moves. One card that resizes rather than
+     three side by side — the sizes are a choice between the same widget,
+     not a set of three — at the point sizes macOS gives each. Always dark,
+     whatever the page theme: it stands in for something on a desktop.
+
+     Pinned on a roomy desktop, where the stage's height is the scroll
+     budget the three sizes are dealt out over; an ordinary block with
+     working tabs everywhere else. Same query as the menu stage. */
+  #widgets { padding: 0; }
+  .w-sticky {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    gap: 28px; padding: 88px 0 40px;
   }
-  .wg-s { width: 158px; height: 158px; }
-  .wg-m { width: 338px; height: 158px; flex-direction: row; align-items: center; gap: 14px; }
-  .wg-l { width: 338px; height: 354px; }
+  @media (min-width: 901px) and (min-height: 780px) and (prefers-reduced-motion: no-preference) {
+    .w-stage { height: 320vh; }
+    .w-sticky {
+      position: sticky; top: 0; height: 100vh; box-sizing: border-box;
+      justify-content: center; padding: 56px 0 0;
+    }
+  }
+  .w-copy { max-width: 620px; padding: 0 20px; }
+  .w-copy .lede { margin: 0 auto 24px; }
+  /* The tabs were drawn for the black menu section; here they sit on the
+     page, so they take the page's own colours. */
+  .states.on-page { background: var(--card); }
+  .states.on-page button { color: var(--text-gray); }
+  .states.on-page button:hover { color: var(--text); }
+  .states.on-page button[aria-selected="true"] { background: var(--text); color: var(--bg); }
+  /* Reserved at the tallest card, so the copy around it doesn't shuffle
+     every time the size changes. */
+  .w-frame { display: flex; align-items: center; justify-content: center; min-height: 354px; }
+  .wg {
+    position: relative; box-sizing: border-box; flex: none; border-radius: 22px;
+    background: #1c1c1e; color: #fff; text-align: left;
+    font-size: 11px; line-height: 1.3; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    transition: width 0.5s cubic-bezier(0.2, 0.6, 0.2, 1), height 0.5s cubic-bezier(0.2, 0.6, 0.2, 1);
+  }
+  .wg[data-size="s"] { width: 158px; height: 158px; }
+  .wg[data-size="m"] { width: 338px; height: 158px; }
+  .wg[data-size="l"] { width: 338px; height: 354px; }
+  /* The three layouts are stacked in the same box and cross-faded. The one
+     arriving waits for the box to be most of the way to its new size —
+     content settling into a frame that is still moving reads as a glitch. */
+  .wc {
+    position: absolute; inset: 15px 16px; display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .wg[data-size="s"] .wc-s,
+  .wg[data-size="m"] .wc-m,
+  .wg[data-size="l"] .wc-l { opacity: 1; transition: opacity 0.3s ease 0.22s; }
+  .wc-m { flex-direction: row; align-items: center; gap: 14px; }
   .wg-dim { color: rgba(255, 255, 255, 0.6); }
   .wg-faint { color: rgba(255, 255, 255, 0.4); }
   .wg-title { font-size: 13px; font-weight: 600; }
   .wg-pct { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; margin-top: auto; }
-  .wg-m .wg-pct, .wg-l .wg-pct { font-size: 30px; margin-top: 0; }
+  .wc-m .wg-pct, .wc-l .wg-pct { font-size: 30px; margin-top: 0; }
   .wg-figs { display: flex; align-items: baseline; gap: 7px; margin-top: auto; }
   .wg-figs .wg-range { font-size: 14px; font-weight: 400; color: rgba(255, 255, 255, 0.6); }
   .wg-range { font-size: 15px; font-weight: 600; }
   .wg-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); margin: 7px 0; }
   .wg-bar i { display: block; height: 100%; border-radius: 3px; background: #0a84ff; }
   .wg-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: auto; white-space: nowrap; }
-  .wg-state { display: inline-flex; align-items: center; gap: 4px; }
+  .wg-state { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
   .wg-state svg { width: 12px; height: 12px; flex: none; }
   .wg-col { display: flex; flex-direction: column; flex: 1; min-width: 0; height: 100%; }
   .wg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   /* The compositor letterboxes the car in a wide transparent canvas; the
-     tile shows only the band the car is in, as the real widget does. */
+     card shows only the band the car is in, as the real widget does. */
   .wg-car { background: center / 122% auto no-repeat; }
-  .wg-m .wg-car { width: 140px; height: 72px; flex: none; background-size: 150% auto; }
-  .wg-l .wg-car { flex: 1 1 0; min-height: 0; margin: 6px 0 2px; }
+  .wc-m .wg-car { width: 140px; height: 72px; flex: none; background-size: 150% auto; }
+  .wc-l .wg-car { flex: 1 1 0; min-height: 0; margin: 6px 0 2px; }
   .wg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin: 4px 0 10px; }
   .wg-grid b { display: block; font-size: 12.5px; font-weight: 500; margin-top: 1px; }
-  .wg-note { margin-top: 36px; font-size: 12.5px; color: var(--text-faint); max-width: 820px; }
+  /* One line about what this size is for, swapped with the card. */
+  .w-caption { color: var(--text-gray); font-size: 14.5px; min-height: 1.5em; margin: 0; padding: 0 20px; }
+  @keyframes capIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .w-caption.swap { animation: capIn 0.34s cubic-bezier(0.2, 0.6, 0.2, 1); }
+  .wg-note { margin: 0 auto; padding: 0 0 88px; font-size: 12.5px; color: var(--text-faint); max-width: 620px; text-align: center; }
 
   /* ---- footer ---- */
   footer { padding: 40px 0 56px; font-size: 12.5px; color: var(--text-gray); }
@@ -840,42 +884,53 @@
 </section>
 
 <section id="widgets">
-  <div class="wrap">
-    <h2>On the desktop</h2>
-    <p class="lede">The same car without the click: one widget in three sizes, showing what
-    the app last fetched. It never asks Tesla for anything itself, so it costs
-    <strong>no extra credits</strong> — and a click on it opens the menu.</p>
-    <div class="wg-row" role="img" aria-label="The Teslaris widget in its small, medium and large sizes, each showing a Tesla Model 3 at 62% battery with 322 km of range, not plugged in">
-      <div class="wg wg-s" aria-hidden="true">
-        <span class="wg-dim">Tesla Model 3</span>
-        <span class="wg-pct">62%</span>
-        <div class="wg-bar"><i style="width:62%"></i></div>
-        <span class="wg-range">322 km</span>
-        <div class="wg-foot"><span class="wg-state wg-dim"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 10.6V8.9c0-.6.4-1.1 1-1.3l1.3-.4 1.1-2.1c.2-.4.6-.6 1-.6h2.8c.4 0 .8.2 1 .6l1.1 2.1 1.3.4c.6.2 1 .7 1 1.300v1.7"/><path d="M1.8 10.600h12.4"/><circle cx="4.7" cy="11.3" r="1.2"/><circle cx="11.3" cy="11.3" r="1.2"/></svg>Not plugged in</span><span class="wg-faint">9 min</span></div>
+  <div class="w-stage" id="wStage">
+    <div class="w-sticky">
+      <div class="w-copy">
+        <h2>On the desktop</h2>
+        <p class="lede">The same car without the click: one widget in three sizes, showing
+        what the app last fetched. It never asks Tesla for anything itself, so it costs
+        <strong>no extra credits</strong> — and a click on it opens the menu.
+        <span class="hint-scroll">Keep scrolling to size it.</span></p>
+        <div class="states on-page" role="tablist" aria-label="Widget size" id="wStates"></div>
       </div>
-      <div class="wg wg-m" aria-hidden="true">
-        <div class="wg-car" style="background-image:url('https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1')"></div>
-        <div class="wg-col">
-          <span class="wg-title">Millennium Falcon</span>
-          <div class="wg-figs"><span class="wg-pct">62%</span><span class="wg-range">322 km</span></div>
-          <div class="wg-bar"><i style="width:62%"></i></div>
-          <div class="wg-foot"><span class="wg-state wg-dim"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 10.6V8.9c0-.6.4-1.1 1-1.3l1.3-.4 1.1-2.1c.2-.4.6-.6 1-.6h2.8c.4 0 .8.2 1 .6l1.1 2.1 1.3.4c.6.2 1 .7 1 1.300v1.7"/><path d="M1.8 10.600h12.4"/><circle cx="4.7" cy="11.3" r="1.2"/><circle cx="11.3" cy="11.3" r="1.2"/></svg>Not plugged in</span><span class="wg-faint">9 min</span></div>
+      <div class="w-frame">
+        <div class="wg" id="wCard" data-size="s" role="img">
+          <div class="wc wc-s" aria-hidden="true">
+            <span class="wg-dim">Tesla Model 3</span>
+            <span class="wg-pct">62%</span>
+            <div class="wg-bar"><i style="width:62%"></i></div>
+            <span class="wg-range">322 km</span>
+            <div class="wg-foot"><span class="wg-state wg-dim"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 10.6V8.9c0-.6.4-1.1 1-1.3l1.3-.4 1.1-2.1c.2-.4.6-.6 1-.6h2.8c.4 0 .8.2 1 .6l1.1 2.1 1.3.4c.6.2 1 .7 1 1.300v1.7"/><path d="M1.8 10.600h12.4"/><circle cx="4.7" cy="11.3" r="1.2"/><circle cx="11.3" cy="11.3" r="1.2"/></svg>Not plugged in</span><span class="wg-faint">9 min</span></div>
+          </div>
+          <div class="wc wc-m" aria-hidden="true">
+            <div class="wg-car" style="background-image:url('https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1')"></div>
+            <div class="wg-col">
+              <span class="wg-title">Millennium Falcon</span>
+              <div class="wg-figs"><span class="wg-pct">62%</span><span class="wg-range">322 km</span></div>
+              <div class="wg-bar"><i style="width:62%"></i></div>
+              <div class="wg-foot"><span class="wg-state wg-dim"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 10.6V8.9c0-.6.4-1.1 1-1.3l1.3-.4 1.1-2.1c.2-.4.6-.6 1-.6h2.8c.4 0 .8.2 1 .6l1.1 2.1 1.3.4c.6.2 1 .7 1 1.300v1.7"/><path d="M1.8 10.600h12.4"/><circle cx="4.7" cy="11.3" r="1.2"/><circle cx="11.3" cy="11.3" r="1.2"/></svg>Not plugged in</span><span class="wg-faint">9 min</span></div>
+            </div>
+          </div>
+          <div class="wc wc-l" aria-hidden="true">
+            <div class="wg-head"><span class="wg-title">Millennium Falcon</span><span class="wg-state wg-dim"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 10.6V8.9c0-.6.4-1.1 1-1.3l1.3-.4 1.1-2.1c.2-.4.6-.6 1-.6h2.8c.4 0 .8.2 1 .6l1.1 2.1 1.3.4c.6.2 1 .7 1 1.300v1.7"/><path d="M1.8 10.600h12.4"/><circle cx="4.7" cy="11.3" r="1.2"/><circle cx="11.3" cy="11.3" r="1.2"/></svg>Not plugged in</span></div>
+            <div class="wg-car" style="background-image:url('https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1')"></div>
+            <div class="wg-figs"><span class="wg-pct">62%</span><span class="wg-range">322 km</span></div>
+            <div class="wg-bar"><i style="width:62%"></i></div>
+            <div class="wg-grid">
+              <div><span class="wg-faint">Charger</span><b>Disconnected</b></div>
+              <div><span class="wg-faint">Odometer</span><b>23,412 km</b></div>
+              <div><span class="wg-faint">Charge limit</span><b>90%</b></div>
+              <div><span class="wg-faint">Doors</span><b>Locked</b></div>
+            </div>
+            <span class="wg-faint">Updated 9 min ago</span>
+          </div>
         </div>
       </div>
-      <div class="wg wg-l" aria-hidden="true">
-        <div class="wg-head"><span class="wg-title">Millennium Falcon</span><span class="wg-state wg-dim"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 10.6V8.9c0-.6.4-1.1 1-1.3l1.3-.4 1.1-2.1c.2-.4.6-.6 1-.6h2.8c.4 0 .8.2 1 .6l1.1 2.1 1.3.4c.6.2 1 .7 1 1.300v1.7"/><path d="M1.8 10.600h12.4"/><circle cx="4.7" cy="11.3" r="1.2"/><circle cx="11.3" cy="11.3" r="1.2"/></svg>Not plugged in</span></div>
-        <div class="wg-car" style="background-image:url('https://static-assets.tesla.com/configurator/compositor?model=m3&amp;options=%24MT356,%24PPSW,%24W38A,%24IPB3&amp;view=STUD_SIDE&amp;size=800&amp;bkba_opt=1')"></div>
-        <div class="wg-figs"><span class="wg-pct">62%</span><span class="wg-range">322 km</span></div>
-        <div class="wg-bar"><i style="width:62%"></i></div>
-        <div class="wg-grid">
-          <div><span class="wg-faint">Charger</span><b>Disconnected</b></div>
-          <div><span class="wg-faint">Odometer</span><b>23,412 km</b></div>
-          <div><span class="wg-faint">Charge limit</span><b>90%</b></div>
-          <div><span class="wg-faint">Doors</span><b>Locked</b></div>
-        </div>
-        <span class="wg-faint">Updated 9 min ago</span>
-      </div>
+      <p class="w-caption" id="wCaption"></p>
     </div>
+  </div>
+  <div class="wrap">
     <p class="wg-note">Illustration of the widget. To add it, right-click the desktop,
     choose <strong>Edit Widgets</strong> and look for Teslaris. If it isn't in the list
     right after updating, quit Teslaris and open it again — macOS only notices a new
@@ -1393,6 +1448,98 @@ openssl ec -in private-key.pem -pubout -out com.tesla.3p.public-key.pem</code></
   pinned.addEventListener('change', onStageScroll);
   renderState(0);
   driveStates();
+
+  // The widget sizes, driven by the same pinned-scroll idea as the menu
+  // above: one card, three shapes, and the tabs stay clickable for anyone
+  // who would rather not scroll for it.
+  const W_SIZES = [
+    {id: 's', tab: 'Small',  text: 'Battery, range, and what the car is doing.'},
+    {id: 'm', tab: 'Medium', text: 'The same, beside your car in its own paint.'},
+    {id: 'l', tab: 'Large',  text: 'Everything else the menu knows — charger, odometer, charge limit and doors.'},
+  ];
+  const wStage = document.getElementById('wStage');
+  const wCard = document.getElementById('wCard');
+  const wTabList = document.getElementById('wStates');
+  const wCaption = document.getElementById('wCaption');
+  let wShown = -1;
+
+  const wTabs = W_SIZES.map((size, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.id = `wsize-${size.id}`;
+    b.textContent = size.tab;
+    b.addEventListener('click', () => chooseSize(i));
+    wTabList.appendChild(b);
+    return b;
+  });
+
+  function renderSize(i) {
+    if (i === wShown) return;
+    const first = wShown < 0;
+    wShown = i;
+    const size = W_SIZES[i];
+    wCard.dataset.size = size.id;
+    wCard.setAttribute('aria-label',
+      `The ${size.tab.toLowerCase()} Teslaris widget: Tesla Model 3 at 62% battery, 322 km of range, not plugged in.`);
+    wTabs.forEach((b, j) => {
+      b.setAttribute('aria-selected', String(j === i));
+      b.tabIndex = j === i ? 0 : -1;
+    });
+    wCaption.textContent = size.text;
+    if (!first) {
+      // Restarting the animation needs the class gone for a frame.
+      wCaption.classList.remove('swap');
+      void wCaption.offsetWidth;
+      wCaption.classList.add('swap');
+    }
+  }
+
+  // As with the menu: a tab press while pinned scrolls to that size's
+  // slice, so the next scroll doesn't snap straight back.
+  function chooseSize(i) {
+    renderSize(i);
+    if (pinned.matches) {
+      const top = wStage.getBoundingClientRect().top + window.scrollY;
+      const travel = wStage.offsetHeight - window.innerHeight;
+      window.scrollTo({top: top + travel * (i + 0.5) / W_SIZES.length, behavior: 'smooth'});
+    }
+  }
+
+  wTabList.addEventListener('keydown', e => {
+    const keys = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1};
+    let next;
+    if (e.key in keys) next = (wShown + keys[e.key] + W_SIZES.length) % W_SIZES.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = W_SIZES.length - 1;
+    else return;
+    e.preventDefault();
+    chooseSize(next);
+    wTabs[next].focus();
+  });
+
+  let sizeQueued = false;
+  const driveSizes = () => {
+    sizeQueued = false;
+    if (!pinned.matches) {
+      // Not pinned, so nothing scrolls it: medium reads best standing still.
+      if (wShown < 0) renderSize(1);
+      return;
+    }
+    const travel = wStage.offsetHeight - window.innerHeight;
+    if (travel <= 0) return;
+    const p = Math.min(1, Math.max(0, -wStage.getBoundingClientRect().top / travel));
+    renderSize(Math.min(W_SIZES.length - 1, Math.floor(p * W_SIZES.length)));
+  };
+  const onSizeScroll = () => {
+    if (sizeQueued) return;
+    sizeQueued = true;
+    requestAnimationFrame(driveSizes);
+  };
+  window.addEventListener('scroll', onSizeScroll, {passive: true});
+  window.addEventListener('resize', onSizeScroll, {passive: true});
+  pinned.addEventListener('change', onSizeScroll);
+  driveSizes();
 
   // Self-hosting is a side path: a modal keeps it out of the main flow
   // without nesting an accordion inside one. The native dialog traps focus
