@@ -37,11 +37,6 @@
       `registerPartnerAccount`) — if real sign-ins never trigger the
       fallback, it can likely be simplified now that Tesla's server-side
       bug is fixed.
-- [ ] Menu bar widget, at parity with Polaris
-      (`Sources/PolarisWidget`, `WidgetSnapshot.swift`, `WidgetBridge.swift`,
-      app-group entitlement). New Xcode target + new App Group
-      registration — not small, do after the core app is verified and
-      signed.
 
 ## Optional, not yet decided
 
@@ -60,6 +55,10 @@
 Every entry carries the version it shipped in; the release workflow turns
 the entries for a version into the notes Sparkle shows in its update panel.
 
+- **The car on your desktop** (v0.6.0) — small, medium and large widgets
+  with battery, range, charging state and the car itself. They show what
+  the app last fetched, so they cost no extra Fleet API credits, and a
+  click opens the menu.
 - **Updates inside the app** (v0.5.0) — Teslaris now checks for new
   versions and installs them itself, from Settings or the menu, and
   automatically if you turn that on. Releases are signed and notarized by

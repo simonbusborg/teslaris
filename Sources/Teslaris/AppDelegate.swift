@@ -34,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if updater.isAvailable {
             statusController.onCheckForUpdates = { [weak self] in self?.updater.checkForUpdates() }
         }
+        // The render arrives after the first poll has already been
+        // published, so the widget gets a second pass once it is there.
+        statusController.onCarImageLoaded = { [weak self] in self?.publishToWidget() }
         statusController.render(data: nil, error: nil, authenticated: false)
         notifier.requestAuthorizationIfNeeded()
 
@@ -42,6 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             showSettings()
         }
+    }
+
+    /// teslaris://open — sent by a click on the desktop widget.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: { $0.scheme == "teslaris" }) else { return }
+        statusController.popMenu()
     }
 
     /// Menu-bar-only apps have no visible main menu, but key equivalents
@@ -97,7 +106,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // A dead session is "not signed in", not a transient
                     // error: open Settings so the fix is in reach instead
                     // of only an error row in the menu.
-                    if Self.isSignedOut(error) { self.showSettings() }
+                    if Self.isSignedOut(error) {
+                        WidgetBridge.clear()
+                        self.showSettings()
+                    }
                 }
             }
         }
@@ -158,7 +170,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusController.activeVin = Preferences.vin.isEmpty
             ? source.vehicles.first?.vin : Preferences.vin
         statusController.render(data: data, error: nil, authenticated: true)
+        publishToWidget()
         scheduleRefresh()
+    }
+
+    private func publishToWidget() {
+        guard let latest else { return }
+        WidgetBridge.publish(latest, image: statusController.widgetImage(for: latest))
     }
 
     /// A sleeping car is not an error: keep showing the last known data,
@@ -169,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         lastError = nil
         statusController.render(data: latest, error: nil, authenticated: true)
+        publishToWidget()
         scheduleRefresh()
     }
 

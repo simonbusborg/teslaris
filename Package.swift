@@ -27,6 +27,24 @@ let package = Package(
             ],
             path: "Sources/Teslaris"
         ),
+        // The widget is a second executable, hand-assembled into an .appex
+        // the same way the .app itself is assembled — no Xcode project.
+        //
+        // -e _NSExtensionMain is what makes the binary loadable as an
+        // extension: @main on the WidgetBundle still generates the SwiftUI
+        // entry point, but the system starts an appex through
+        // NSExtensionMain rather than main(). Xcode's widget template sets
+        // exactly this flag. unsafeFlags is fine here and only here —
+        // SwiftPM forbids it in a package consumed as a dependency, and
+        // Teslaris is only ever the root.
+        .executableTarget(
+            name: "TeslarisWidget",
+            dependencies: ["TeslarisShared"],
+            path: "Sources/TeslarisWidget",
+            linkerSettings: [
+                .unsafeFlags(["-Xlinker", "-e", "-Xlinker", "_NSExtensionMain"])
+            ]
+        ),
         .testTarget(
             name: "TeslarisTests",
             dependencies: ["Teslaris", "TeslarisShared"],

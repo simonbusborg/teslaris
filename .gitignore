@@ -3,3 +3,4 @@
 *.dmg
 .DS_Store
 mock-server/.env
+/build/
