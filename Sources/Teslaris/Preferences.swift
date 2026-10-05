@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TeslarisShared
 
 enum DisplayOption: String, CaseIterable {
     case batteryPercentage = "Battery Percentage"
@@ -14,15 +15,24 @@ enum DisplayOption: String, CaseIterable {
     case chargeTime = "Charge Time"
 }
 
-enum DistanceUnit: String, CaseIterable {
-    case kilometers = "Kilometers (km)"
-    case miles = "Miles (mi)"
+/// How often an awake, parked car is asked for fresh numbers. The raw value
+/// is the interval in seconds — what sits in UserDefaults — so a choice can
+/// be added without renumbering anything. Charging and a sleeping car keep
+/// their own cadence; see AppDelegate.refreshInterval(for:monthlyRequests:).
+enum RefreshInterval: Int, CaseIterable {
+    case oneMinute = 60
+    case twoMinutes = 120
+    case fiveMinutes = 300
+    case tenMinutes = 600
+    case fifteenMinutes = 900
 
-    var suffix: String { self == .kilometers ? "km" : "mi" }
+    /// Teslaris polled parked cars every 15 minutes before this was a
+    /// choice, so that stays the default: nobody's Fleet API usage goes up
+    /// by updating.
+    static let `default`: RefreshInterval = .fifteenMinutes
 
-    /// Internal canonical unit is km; miles convert at display time.
-    func convert(km: Int) -> Int {
-        self == .kilometers ? km : Int((Double(km) * 0.621371).rounded())
+    var title: String {
+        self == .oneMinute ? "Every minute" : "Every \(rawValue / 60) minutes"
     }
 }
 
@@ -85,6 +95,11 @@ enum Preferences {
         set { d.set(newValue.rawValue, forKey: "distance_unit") }
     }
 
+    static var refreshInterval: RefreshInterval {
+        get { RefreshInterval(rawValue: d.integer(forKey: "refresh_interval")) ?? .default }
+        set { d.set(newValue.rawValue, forKey: "refresh_interval") }
+    }
+
     static var launchAtLogin: Bool {
         get { d.bool(forKey: "launch_at_login") }
         set { d.set(newValue, forKey: "launch_at_login") }
@@ -109,5 +124,34 @@ enum Preferences {
     static var notifyChargingProblem: Bool {
         get { boolDefaultTrue("notify_charging_problem") }
         set { d.set(newValue, forKey: "notify_charging_problem") }
+    }
+
+    static var notifyLowBattery: Bool {
+        get { boolDefaultTrue("notify_low_battery") }
+        set { d.set(newValue, forKey: "notify_low_battery") }
+    }
+
+    /// Only values Settings offers are honoured, so a stray `defaults write`
+    /// can't leave the popup with nothing selected.
+    static var lowBatteryThreshold: Int {
+        get {
+            guard let stored = d.object(forKey: "low_battery_threshold") as? Int,
+                  LowBatteryWatch.thresholds.contains(stored) else {
+                return LowBatteryWatch.defaultThreshold
+            }
+            return stored
+        }
+        set { d.set(newValue, forKey: "low_battery_threshold") }
+    }
+
+    /// Whether the reminder has already fired for this car's current
+    /// discharge. Per VIN, so switching cars can neither swallow nor repeat
+    /// a warning, and persisted so a relaunch doesn't warn again.
+    static func lowBatteryWarned(vin: String) -> Bool {
+        d.bool(forKey: "low_battery_warned_" + vin)
+    }
+
+    static func setLowBatteryWarned(_ warned: Bool, vin: String) {
+        d.set(warned, forKey: "low_battery_warned_" + vin)
     }
 }

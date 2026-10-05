@@ -213,12 +213,29 @@ final class FleetAPITests: XCTestCase {
     func testDemoTimelineReachesChargingAndSleep() async throws {
         let demo = DemoVehicleSource()
         var sawCharging = false, sawAsleep = false
-        for _ in 0..<10 {
+        for _ in 0..<12 {
             let data = try await demo.fetchVehicleData(vin: "")
             if data.isCharging { sawCharging = true }
             if data.isAsleep { sawAsleep = true }
         }
         XCTAssertTrue(sawCharging)
         XCTAssertTrue(sawAsleep)
+    }
+
+    /// Demo mode is the only way to see the low-battery reminder without a
+    /// car, so the timeline has to cross the default threshold unplugged.
+    func testDemoTimelineTriggersLowBatteryReminder() async throws {
+        let demo = DemoVehicleSource()
+        var warned = false, fired = false
+        for _ in 0..<12 {
+            let data = try await demo.fetchVehicleData(vin: "")
+            let outcome = LowBatteryWatch.evaluate(
+                percentage: data.batteryPercentage,
+                isCharging: data.isCharging || data.isPluggedIn == true,
+                threshold: LowBatteryWatch.defaultThreshold, warned: warned)
+            if outcome.notify { fired = true }
+            warned = outcome.warned
+        }
+        XCTAssertTrue(fired)
     }
 }

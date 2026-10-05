@@ -39,6 +39,14 @@ enum UsageMeter {
         defaults.set(defaults.integer(forKey: countKey) + 1, forKey: countKey)
     }
 
+    /// Time until the count resets, which is what the remaining credits
+    /// have to last for.
+    static func secondsLeftInMonth(from now: Date = Date(),
+                                   calendar: Calendar = .current) -> TimeInterval {
+        guard let month = calendar.dateInterval(of: .month, for: now) else { return 0 }
+        return month.end.timeIntervalSince(now)
+    }
+
     static var monthlyCount: Int {
         let defaults = UserDefaults.standard
         guard defaults.string(forKey: monthKey) == currentMonth else { return 0 }

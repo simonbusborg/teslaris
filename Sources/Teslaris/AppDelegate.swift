@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let fleetAPI = TeslaFleetAPI()
 
     private let notifier = Notifier()
-    private let updateChecker = UpdateChecker()
+    private let updater = Updater()
     private var refreshTimer: Timer?
     private var latest: VehicleData?
     private var lastError: String?
@@ -31,14 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onSettings: { [weak self] in self?.showSettings() }
         )
         statusController.onSelectVehicle = { [weak self] vin in self?.switchVehicle(to: vin) }
+        if updater.isAvailable {
+            statusController.onCheckForUpdates = { [weak self] in self?.updater.checkForUpdates() }
+        }
         statusController.render(data: nil, error: nil, authenticated: false)
         notifier.requestAuthorizationIfNeeded()
-        updateChecker.checkIfDue { [weak self] version in
-            guard let self else { return }
-            self.statusController.updateVersion = version
-            self.statusController.render(data: self.latest, error: self.lastError,
-                                         authenticated: self.source.isAuthenticated)
-        }
 
         if hasCredentials || DemoVehicleSource.enabled {
             startSession()
@@ -193,26 +190,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Poll cadence by state, tuned for Fleet API billing (~$0.002 per
-    /// request). Parked: 15 min — the numbers barely move. Charging
-    /// scales with time-to-full, so an overnight charge doesn't burn a
-    /// request a minute for eight hours; the 1-minute cadence is saved
-    /// for the last stretch, when the numbers actually matter. Asleep is
-    /// checked first: a stale "Charging" state must never keep a
-    /// sleeping car on a fast poll. Near the $10 free credit, the brake
-    /// stretches everything to 30 minutes.
+    /// request). Parked: the pace chosen in Settings, 15 min by default —
+    /// the numbers barely move, and every awake check is a billed request
+    /// that also postpones the car falling asleep. Charging scales with
+    /// time-to-full, so an overnight charge doesn't burn a request a minute
+    /// for eight hours; the 1-minute cadence is saved for the last stretch,
+    /// when the numbers actually matter. A charge is never polled more
+    /// slowly than a parked car, or choosing a fast pace would make the
+    /// menu go quieter the moment the cable goes in. Asleep is checked
+    /// first and ignores the setting: a stale "Charging" state or an eager
+    /// choice must never keep a sleeping car on a fast poll. Near the $10
+    /// free credit the brake takes over: at least 30 minutes, and never
+    /// faster than the credits that are left can sustain until they reset —
+    /// a fixed 30 minutes alone would still run past the allowance if the
+    /// brake engaged early in the month. With nothing left, polling waits
+    /// for the reset.
     static func refreshInterval(for data: VehicleData?,
-                                monthlyRequests: Int) -> TimeInterval {
-        var interval: TimeInterval = 900
+                                monthlyRequests: Int,
+                                parked: RefreshInterval = Preferences.refreshInterval,
+                                now: Date = Date()) -> TimeInterval {
+        let parkedInterval = TimeInterval(parked.rawValue)
+        var interval = parkedInterval
         if let data {
             if data.isAsleep {
                 interval = 1800
             } else if data.isCharging {
                 let minutes = data.minutesToFull ?? 0
-                interval = minutes > 60 ? 300 : (minutes > 15 ? 120 : 60)
+                let charging: TimeInterval = minutes > 60 ? 300 : (minutes > 15 ? 120 : 60)
+                interval = min(charging, parkedInterval)
             }
         }
         if monthlyRequests >= UsageMeter.brakeThreshold {
-            interval = max(interval * 2, 1800)
+            let untilReset = UsageMeter.secondsLeftInMonth(from: now)
+            let remaining = UsageMeter.monthlyAllowance - monthlyRequests
+            guard remaining > 0 else { return max(untilReset, 60) }
+            interval = max(interval * 2, 1800, untilReset / Double(remaining))
         }
         return interval
     }
@@ -224,6 +236,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsController = SettingsWindowController(
                 onSave: { [weak self] in
                     self?.applyLaunchAtLogin()
+                    // A new parked pace takes effect now, not after the old
+                    // timer has run its full course — and still holds if the
+                    // fetch below fails and never reaches apply(). Only an
+                    // existing timer is replaced: starting one before any
+                    // session exists would retry a missing sign-in, and
+                    // reopen Settings, every few minutes.
+                    if self?.refreshTimer != nil { self?.scheduleRefresh() }
                     self?.startSession()
                 },
                 onSignIn: { [weak self] in
@@ -232,7 +251,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 onRegister: { [weak self] domain in
                     self?.registerPartnerAccount(domain: domain)
-                }
+                },
+                updater: updater
             )
         }
         settingsController?.show()

@@ -12,12 +12,42 @@ permissions:
 # them the release falls back to the old ad-hoc-signed build.
 env:
   HAS_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
+  HAS_SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
 
 jobs:
   build-and-release:
     runs-on: macos-14
     steps:
+      # Full history and tags: the release notes are built from the commits
+      # since the previous tag, which a shallow clone doesn't have.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Signing is all or nothing. With no signing secrets at all the
+      # release is the ad-hoc build described above (Teslaris ships that
+      # way today, so the preflight must not block it). With some but not
+      # all of them, the app gets signed and the run only fails at
+      # notarization minutes later. The set is checked before anything is
+      # built, so a missing one costs a red run at second ten.
+      - name: Preflight — signing secrets are complete or absent
+        env:
+          HAS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD != '' }}
+          HAS_NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID != '' }}
+          HAS_NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID != '' }}
+          HAS_NOTARY_APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD != '' }}
+        run: |
+          present=""; missing=""
+          for name in HAS_SIGNING HAS_CERT_PASSWORD HAS_NOTARY_APPLE_ID HAS_NOTARY_TEAM_ID HAS_NOTARY_APP_PASSWORD; do
+            eval "value=\$$name"
+            if [ "$value" = "true" ]; then present="$present $name"; else missing="$missing $name"; fi
+          done
+          if [ -n "$present" ] && [ -n "$missing" ]; then
+            echo "Refusing to release: signing is half configured, missing secrets for$missing"
+            echo "Add them under Settings → Secrets → Actions, then re-run this tag."
+            exit 1
+          fi
+          test -n "$present" || echo "No signing secrets: releasing an ad-hoc-signed build"
 
       # The update checker compares Info.plist's version against the
       # latest release tag — a mismatch would nag every user forever.
@@ -61,9 +91,7 @@ jobs:
           TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
           APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
         run: |
-          ditto -c -k --keepParent Teslaris.app notarize.zip
-          xcrun notarytool submit notarize.zip \
-            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_PASSWORD" --wait
+          scripts/notarize.sh
           xcrun stapler staple Teslaris.app
 
       - name: Package (dmg + zip)
@@ -78,3 +106,72 @@ jobs:
             Teslaris.dmg
             Teslaris.zip
           generate_release_notes: true
+
+      # Runs after the release exists: the appcast points at the release's
+      # download URL, and a broken feed shouldn't hold up shipping the build
+      # itself. Sparkle only trusts an appcast entry it can verify against
+      # the EdDSA public key baked into Info.plist, so the zip is signed
+      # here and the feed regenerated from that signature. The commit goes
+      # to main, which is what GitHub Pages serves the feed from.
+      - name: Sign the build for Sparkle and publish the appcast
+        if: ${{ env.HAS_SPARKLE_KEY == 'true' }}
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -x
+          SIGN=$(find .build/artifacts -type f -name sign_update | head -1)
+          test -n "$SIGN" || { echo "sign_update missing from the Sparkle artifact"; exit 1; }
+          chmod +x "$SIGN"
+          # -s is deprecated and now exits non-zero; the key goes in a file.
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > sparkle.key
+          ATTRS=$("$SIGN" Teslaris.zip --ed-key-file sparkle.key)
+          rm -f sparkle.key
+          # sign_update prints its errors on stdout, so a bad key ends up
+          # inside ATTRS and gets written into the appcast as garbage
+          # attributes. Refuse anything that isn't a signature.
+          case "$ATTRS" in
+            sparkle:edSignature=*) ;;
+            *) echo "sign_update did not return a signature: $ATTRS"; exit 1 ;;
+          esac
+          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info.plist)
+          git fetch origin main
+          git checkout -B main origin/main
+          python3 scripts/release_notes.py "$GITHUB_REF_NAME"
+          python3 scripts/update_appcast.py "$GITHUB_REF_NAME" "$BUILD" "$ATTRS"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml docs/notes
+          git commit -m "Publish $GITHUB_REF_NAME to the Sparkle appcast"
+          git push origin main
+
+      # Reads back what the world can actually see. The upload step can
+      # succeed while an asset is missing from the release — a name typo, a
+      # race with a re-run — and only this step would notice.
+      - name: Verify the published release is complete
+        if: github.repository == 'simonbusborg/teslaris'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --json assets \
+            --jq '.assets[].name' | sort > assets.txt
+          grep -qx Teslaris.dmg assets.txt || { echo "release is missing Teslaris.dmg"; exit 1; }
+          grep -qx Teslaris.zip assets.txt || { echo "release is missing Teslaris.zip"; exit 1; }
+          # The shipped zip is what users unpack; make sure it is the
+          # universal, stapled build and not a stale local artefact.
+          ditto -x -k Teslaris.zip verify
+          lipo verify/Teslaris.app/Contents/MacOS/Teslaris -verify_arch arm64 x86_64 \
+            || { echo "Teslaris.app is not a universal binary"; exit 1; }
+          if [ "$HAS_SIGNING" = "true" ]; then
+            xcrun stapler validate verify/Teslaris.app \
+              || { echo "Teslaris.app carries no notarization ticket"; exit 1; }
+          fi
+          if [ "$HAS_SPARKLE_KEY" = "true" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            git fetch origin main
+            git show origin/main:docs/appcast.xml > feed.xml
+            grep -q "<sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>" feed.xml \
+              || { echo "appcast has no entry for $VERSION"; exit 1; }
+            grep -q 'sparkle:edSignature="' feed.xml \
+              || { echo "appcast entry for $VERSION carries no signature"; exit 1; }
+          fi
+          echo "release $GITHUB_REF_NAME is complete: dmg and zip published, universal"

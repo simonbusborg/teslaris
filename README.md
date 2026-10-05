@@ -12,36 +12,31 @@ Tesla — nowhere else, and there is nothing to subscribe to.
 Sibling project of [Polaris](https://github.com/simonbusborg/polaris)
 (the same app for Polestar). Docs and setup guide:
 [simonbusborg.github.io/teslaris](https://simonbusborg.github.io/teslaris/).
-
-## Status: under development
-
-**Not ready to install.** The app itself is complete — menu, data
-parsing, notifications, cost controls and the whole setup flow are built
-and tested — but sign-in cannot be completed. Tesla's authorisation step
-fails with "No policy rules" for correctly configured applications,
-because the API resource an application is bound to can carry no policy
-at all. That is a defect on Tesla's side with no workaround available to
-us; a support case is open.
-
-Everything else can be explored today without a Tesla account, via demo
-mode or the mock server (see below). Builds will be published once
-sign-in works end to end.
+Pending work and feature parity with Polaris: [ROADMAP.md](ROADMAP.md).
 
 ## Install
 
+[Download the latest Teslaris](https://github.com/simonbusborg/teslaris/releases/latest/download/Teslaris.dmg),
+open the disk image and drag it into Applications. Releases are signed
+and notarized by Apple, and the app keeps itself up to date from there
+(Settings → Updates, or **Check for Updates…** in the menu).
+
+The setup itself — one free Tesla developer app, about ten minutes — is
+walked through in the [setup guide](https://simonbusborg.github.io/teslaris/#setup).
+Everything can also be explored without a Tesla account, via demo mode or
+the mock server (see below).
+
 Releases are built by GitHub Actions, cut with
 `make release VERSION=x.y.z`, which bumps `Info.plist`, tags and pushes.
-macOS blocks the first launch of unsigned builds ("Apple could not
-verify…"): click **Done**, then **System Settings → Privacy & Security →
-Open Anyway**. On macOS 14 and earlier, **right-click → Open → Open**
-also works. This happens once.
+A local `make app` build is ad-hoc signed, not notarized: the first
+launch wants a right-click → **Open**.
 
 ## Features
 
 - Battery %, range (km/mi), charging status, charging power, charge limit
-  and time-to-full — refreshed every 15 minutes when parked; while
-  charging the cadence scales with time-to-full (5 min → 1 min as the
-  charge finishes)
+  and time-to-full — refreshed every 15 minutes when parked (choose 1–15
+  minutes in Settings); while charging the cadence scales with
+  time-to-full (5 min → 1 min as the charge finishes)
 - Cabin and outside temperature (in the car's own °C/°F setting),
   door-lock and Sentry Mode status, a warning when a window, door, frunk
   or trunk is left open, and pending software updates — all from the same
@@ -51,12 +46,15 @@ also works. This happens once.
   are auto-detected; combinations the renderer doesn't support fall back
   to a neutral white car of the right model. To force exact options:
   `defaults write com.weareheavy.teslaris car_image_options '$MTY13,$PRED,$WY20P,$INPB0'`
-- Notifications when charging starts, completes, or the charger loses power
+- Notifications when charging starts, completes, or the charger loses power,
+  and a reminder to plug in when the battery drops below a threshold you
+  choose (5–50%, default 20%) — once per discharge, not on every refresh
 - Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit
   and battery) — the menu shows the last known data, marked as such
 - Choose what the menu bar shows; the icon reflects charging state
 - Credentials and session in the macOS Keychain, never in plaintext
-- Launch at login (optional), once-a-day update check against GitHub
+- Launch at login (optional), and in-app updates — checked and installed
+  from Settings, or automatically if you turn that on
 - A single small binary
 
 ## Why "bring your own developer app"?
@@ -132,7 +130,9 @@ The full guide with copy-paste blocks lives at
 
 ## Build from source
 
-Requires macOS 13+ and the Xcode Command Line Tools.
+Requires macOS 13+ and the Xcode Command Line Tools. `make app` builds a
+universal binary (Apple silicon and Intel), so the first build compiles
+everything twice.
 
 ```bash
 git clone https://github.com/simonbusborg/teslaris
@@ -148,7 +148,9 @@ runs the suite (no Tesla account needed — everything is fixture-driven).
 
 Teslaris is built so spending **cannot** rocket:
 
-- **Adaptive polling.** Parked: every 15 min. Charging: every 5 min,
+- **Adaptive polling.** Parked: every 15 min by default — Settings offers
+  1–15 min, and a faster pace costs proportionally more (every minute is
+  ~1,440 credits a day, and keeps the car from sleeping). Charging: every 5 min,
   tightening to 1 min only for the final stretch — so an overnight
   charge costs ~100 credits, not ~500. A sleeping car is polled every
   30 min and never woken.
@@ -156,7 +158,8 @@ Teslaris is built so spending **cannot** rocket:
   the free monthly credit covers ~5,000 requests, so one request is one
   credit. It resets monthly, and no money appears in the app.
 - **A brake.** Past ~84% of the monthly credits, all polling stretches
-  to 30 min until they reset, and the menu says so.
+  to 30 min or more — slow enough that what is left lasts until they
+  reset — and pauses if they run out. The menu says so either way.
 - **A billing limit.** Tesla requires a payment method on the developer
   app (without one the app is disabled and sign-in fails). Set a **billing
   limit** in the same place — Tesla will never charge past it, so it caps

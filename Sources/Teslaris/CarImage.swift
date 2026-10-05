@@ -150,9 +150,15 @@ final class CarImageRowView: NSView {
 
     private let image: NSImage
 
-    init(image: NSImage) {
+    /// `description` names the car for VoiceOver ("Tesla Model 3"). Without
+    /// one the render says nothing a sighted glance adds, so it stays out
+    /// of the accessibility tree rather than reading as "image".
+    init(image: NSImage, description: String?) {
         self.image = image
         super.init(frame: NSRect(x: 0, y: 0, width: StatusItemController.rowWidth, height: 100))
+        setAccessibilityElement(description != nil)
+        setAccessibilityRole(.image)
+        setAccessibilityLabel(description)
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
