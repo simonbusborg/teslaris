@@ -38,6 +38,13 @@ final class FleetAPITests: XCTestCase {
         "df": 0, "pf": 0, "dr": 0, "pr": 0,
         "ft": 0,
         "rt": 1,
+        "is_user_present": false,
+        "tpms_pressure_fl": 2.9, "tpms_pressure_fr": 2.875,
+        "tpms_pressure_rl": 2.1, "tpms_pressure_rr": null,
+        "tpms_soft_warning_fl": false, "tpms_soft_warning_fr": false,
+        "tpms_soft_warning_rl": true, "tpms_soft_warning_rr": false,
+        "tpms_hard_warning_fl": false, "tpms_hard_warning_fr": false,
+        "tpms_hard_warning_rl": false, "tpms_hard_warning_rr": true,
         "software_update": {
           "status": "available",
           "version": "2026.20.6"
@@ -54,6 +61,7 @@ final class FleetAPITests: XCTestCase {
       "gui_settings": {
         "gui_distance_units": "km/hr",
         "gui_temperature_units": "C",
+        "gui_tirepressure_units": "Bar",
         "timestamp": 1692141038420
       },
       "vehicle_config": {
@@ -107,6 +115,29 @@ final class FleetAPITests: XCTestCase {
         XCTAssertEqual(parsed.temperatureUnit, "C")
         XCTAssertEqual(parsed.exteriorColor, "DeepBlue")
         XCTAssertEqual(parsed.wheelType, "Photon18")
+    }
+
+    func testParseTyresAndPresence() {
+        let parsed = TeslaFleetAPI.parseVehicleData(fixture(), now: Date())
+
+        XCTAssertEqual(parsed.userPresent, false)
+        // Soft on the rear left, hard on the rear right: both count.
+        XCTAssertEqual(parsed.lowTyres, [.rearLeft, .rearRight])
+        XCTAssertEqual(parsed.tyrePressuresBar[.frontLeft], 2.9)
+        XCTAssertEqual(parsed.tyrePressuresBar[.rearLeft], 2.1)
+        XCTAssertNil(parsed.tyrePressuresBar[.rearRight])   // null: no reading yet
+        XCTAssertEqual(parsed.tyrePressureUnit, "Bar")
+    }
+
+    func testTyreFlagsAbsentMeansUnknown() {
+        var vehicle = fixture()
+        var state = vehicle["vehicle_state"] as! [String: Any]
+        for key in state.keys where key.hasPrefix("tpms_") { state[key] = nil }
+        vehicle["vehicle_state"] = state
+
+        let parsed = TeslaFleetAPI.parseVehicleData(vehicle, now: Date())
+        XCTAssertNil(parsed.lowTyres)
+        XCTAssertTrue(parsed.tyrePressuresBar.isEmpty)
     }
 
     func testIdleSoftwareUpdateStatusBecomesNil() {

@@ -220,6 +220,14 @@ final class StatusItemController {
             if let open = Self.openSummary(for: data) {
                 cabin.append(rowItem(open, warning: true))
             }
+            // One row per wheel the car flags, so the warning outlasts its
+            // notification; nothing when the tyres are fine.
+            for wheel in data.lowTyres ?? [] {
+                let reading = TyreWatch.reading(bar: data.tyrePressuresBar[wheel],
+                                                unit: data.tyrePressureUnit)
+                cabin.append(kvItem("\(wheel.title) tyre", reading ?? "Low",
+                                    valueWarning: true))
+            }
             if let label = Self.softwareUpdateLabel(status: data.softwareUpdateStatus,
                                                     version: data.softwareUpdateVersion) {
                 cabin.append(kvItem("Software", label))

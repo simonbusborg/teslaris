@@ -14,6 +14,7 @@ Scenario control (curl or browser):
     /debug/scenario/plugged      plugged in, waiting
     /debug/scenario/complete     charged to the limit
     /debug/scenario/open         unlocked, a window and the trunk open
+    /debug/scenario/tyre         rear-left tyre low, flagged by the car
     /debug/scenario/asleep       vehicle_data returns 408
 """
 
@@ -30,6 +31,7 @@ SCENARIOS = {
     "charging": {"charging_state": "Charging", "charger_power": 11},
     "complete": {"charging_state": "Complete"},
     "open":     {"charging_state": "Disconnected", "open": True},
+    "tyre":     {"charging_state": "Disconnected", "tyre": True},
     "asleep":   {},
 }
 
@@ -68,6 +70,15 @@ def vehicle_data():
                 "df": 0, "pf": 0, "dr": 0, "pr": 0,
                 "ft": 0,
                 "rt": 1 if extra.get("open") else 0,
+                "is_user_present": False,
+                "tpms_pressure_fl": 2.9, "tpms_pressure_fr": 2.9,
+                "tpms_pressure_rl": 2.1 if extra.get("tyre") else 2.9,
+                "tpms_pressure_rr": 2.9,
+                "tpms_soft_warning_fl": False, "tpms_soft_warning_fr": False,
+                "tpms_soft_warning_rl": bool(extra.get("tyre")),
+                "tpms_soft_warning_rr": False,
+                "tpms_hard_warning_fl": False, "tpms_hard_warning_fr": False,
+                "tpms_hard_warning_rl": False, "tpms_hard_warning_rr": False,
                 "software_update": {
                     "status": "available" if scenario == "idle" else "",
                     "version": "2026.20.6",
@@ -84,6 +95,7 @@ def vehicle_data():
             "gui_settings": {
                 "gui_distance_units": "km/hr",
                 "gui_temperature_units": "C",
+                "gui_tirepressure_units": "Bar",
                 "timestamp": int(time.time() * 1000),
             },
             "vehicle_config": {

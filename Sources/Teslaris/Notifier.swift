@@ -3,7 +3,8 @@
 //  Teslaris
 //
 //  Local notifications for charging milestones, derived by comparing
-//  consecutive refreshes, and the low-battery reminder. UNUserNotificationCenter only works from a real
+//  consecutive refreshes, the low-battery reminder, and the tyre-pressure
+//  and left-unlocked warnings. UNUserNotificationCenter only works from a real
 //  .app bundle, so everything is a no-op under `swift run`.
 //
 
@@ -15,6 +16,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     private let available = Bundle.main.bundleURL.pathExtension == "app"
     private var authorized = false
+    /// The unlocked stretch in progress, per VIN; see UnlockedWatch.State.
+    private var unlocked: [String: UnlockedWatch.State] = [:]
 
     func requestAuthorizationIfNeeded() {
         guard available else { return }
@@ -33,6 +36,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         // launch, which is exactly when the app is catching up on a car
         // that drained while it wasn't running.
         checkLowBattery(new)
+        checkTyres(new)
+        checkUnlocked(new)
 
         guard let old else { return }
 
@@ -56,6 +61,43 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             post(title: "Charging problem",
                  body: String(format: "Charger reported no power at %.0f%%", new.batteryPercentage))
         }
+    }
+
+    /// A sleeping car can't lock itself, so one that fell asleep unlocked is
+    /// still unlocked — and at the parked pace it is often asleep by the
+    /// second reading. Without this the warning would wait for a reading
+    /// that never comes.
+    func vehicleIsAsleep(cached: VehicleData) {
+        guard available, authorized else { return }
+        checkUnlocked(cached)
+    }
+
+    private func checkTyres(_ new: VehicleData) {
+        let vin = new.vin ?? Preferences.vin
+        let warned = Preferences.tyreWarned(vin: vin)
+        let outcome = TyreWatch.evaluate(lowTyres: new.lowTyres, warned: warned)
+        // Tracked with the warning switched off too, as for low battery.
+        if outcome.warned != warned {
+            Preferences.setTyreWarned(outcome.warned, vin: vin)
+        }
+        guard outcome.notify, Preferences.notifyTyrePressure else { return }
+        post(title: "Low tyre pressure",
+             body: TyreWatch.summary(lowTyres: new.lowTyres ?? [],
+                                     pressuresBar: new.tyrePressuresBar,
+                                     unit: new.tyrePressureUnit))
+    }
+
+    private func checkUnlocked(_ new: VehicleData, now: Date = Date()) {
+        let vin = new.vin ?? Preferences.vin
+        let outcome = UnlockedWatch.evaluate(locked: new.locked,
+                                             userPresent: new.userPresent ?? false,
+                                             state: unlocked[vin],
+                                             now: now)
+        unlocked[vin] = outcome.state
+        guard outcome.notify, Preferences.notifyUnlocked, let state = outcome.state else { return }
+        let minutes = Int((now.timeIntervalSince(state.since) / 60).rounded())
+        post(title: "Car left unlocked",
+             body: "\(new.vehicleName ?? "Your car") has been unlocked for \(minutes) min")
     }
 
     private func checkLowBattery(_ new: VehicleData) {

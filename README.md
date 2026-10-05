@@ -51,6 +51,9 @@ launch wants a right-click → **Open**.
 - Notifications when charging starts, completes, or the charger loses power,
   and a reminder to plug in when the battery drops below a threshold you
   choose (5–50%, default 20%) — once per discharge, not on every refresh
+- A warning when the car flags a tyre as low, and one when it has been
+  sitting unlocked with nobody in it for ten minutes — each once, not on
+  every refresh, and each with its own switch in Settings
 - Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit
   and battery) — the menu shows the last known data, marked as such
 - Choose what the menu bar shows; the icon reflects charging state
@@ -126,6 +129,8 @@ The full guide with copy-paste blocks lives at
   make mock   # http://localhost:4321
   defaults write com.weareheavy.teslaris debug_base_url http://localhost:4321
   curl localhost:4321/debug/scenario/charging
+  curl localhost:4321/debug/scenario/tyre   # the car flags a low tyre
+  curl localhost:4321/debug/scenario/open   # unlocked, for the left-unlocked warning
   ```
 
   (`defaults delete com.weareheavy.teslaris debug_base_url` to go back.)

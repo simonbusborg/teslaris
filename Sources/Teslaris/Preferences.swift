@@ -131,6 +131,16 @@ enum Preferences {
         set { d.set(newValue, forKey: "notify_low_battery") }
     }
 
+    static var notifyTyrePressure: Bool {
+        get { boolDefaultTrue("notify_tyre_pressure") }
+        set { d.set(newValue, forKey: "notify_tyre_pressure") }
+    }
+
+    static var notifyUnlocked: Bool {
+        get { boolDefaultTrue("notify_unlocked") }
+        set { d.set(newValue, forKey: "notify_unlocked") }
+    }
+
     /// Only values Settings offers are honoured, so a stray `defaults write`
     /// can't leave the popup with nothing selected.
     static var lowBatteryThreshold: Int {
@@ -153,5 +163,15 @@ enum Preferences {
 
     static func setLowBatteryWarned(_ warned: Bool, vin: String) {
         d.set(warned, forKey: "low_battery_warned_" + vin)
+    }
+
+    /// Whether the tyre warning has already fired for what this car is
+    /// flagging now. Per VIN and persisted, as the low-battery flag is.
+    static func tyreWarned(vin: String) -> Bool {
+        d.bool(forKey: "tyre_warned_" + vin)
+    }
+
+    static func setTyreWarned(_ warned: Bool, vin: String) {
+        d.set(warned, forKey: "tyre_warned_" + vin)
     }
 }

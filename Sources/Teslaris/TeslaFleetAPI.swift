@@ -505,6 +505,22 @@ final class TeslaFleetAPI: VehicleDataSource {
         data.openDoors = openCount(["df", "pf", "dr", "pr"])
         data.frunkOpen = (state["ft"] as? NSNumber).map { $0.intValue != 0 }
         data.trunkOpen = (state["rt"] as? NSNumber).map { $0.intValue != 0 }
+        data.userPresent = state["is_user_present"] as? Bool
+        // Soft is the "pressure low" light, hard the "pull over" one; either
+        // makes the wheel worth a notification.
+        var low: [Wheel] = []
+        var sawFlag = false
+        for wheel in Wheel.allCases {
+            for kind in ["soft", "hard"] {
+                guard let flag = state["tpms_\(kind)_warning_\(wheel.rawValue)"] as? Bool else { continue }
+                sawFlag = true
+                if flag && !low.contains(wheel) { low.append(wheel) }
+            }
+            if let bar = (state["tpms_pressure_\(wheel.rawValue)"] as? NSNumber)?.doubleValue {
+                data.tyrePressuresBar[wheel] = bar
+            }
+        }
+        data.lowTyres = sawFlag ? low : nil
         if let update = state["software_update"] as? [String: Any],
            let status = update["status"] as? String, !status.isEmpty {
             data.softwareUpdateStatus = status
@@ -514,6 +530,7 @@ final class TeslaFleetAPI: VehicleDataSource {
 
         let gui = vehicle["gui_settings"] as? [String: Any] ?? [:]
         data.temperatureUnit = gui["gui_temperature_units"] as? String
+        data.tyrePressureUnit = gui["gui_tirepressure_units"] as? String
 
         let config = vehicle["vehicle_config"] as? [String: Any] ?? [:]
         data.exteriorColor = config["exterior_color"] as? String
