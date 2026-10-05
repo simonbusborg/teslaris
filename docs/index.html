@@ -397,6 +397,13 @@
   .spec .v code { font-family: var(--mono); font-size: 13px; font-weight: 500; }
   .spec-rule { height: 1px; background: var(--line-dark); margin: 32px 0; }
   .dark-note { margin-top: 40px; font-size: 12.5px; color: rgba(255,255,255,0.5); }
+  /* A real screenshot beside the specifications: the mock above is drawn,
+     this is what the app put on a Mac. Kept small — it is proof, not the
+     centrepiece. */
+  .specs-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 64px; align-items: start; }
+  .real-shot { margin: 0; }
+  .real-shot img { display: block; width: 100%; height: auto; filter: drop-shadow(0 18px 36px rgba(0,0,0,0.55)); }
+  .real-shot figcaption { margin-top: 14px; font-size: 12.5px; color: rgba(255,255,255,0.5); }
 
   /* ---- setup ---- */
   .setup-section { background: var(--card); }
@@ -548,7 +555,8 @@
     .stat { border-right: 0; padding: 4px 0; margin: 0 0 24px; flex: 1 1 100%; }
     header .caption { padding-top: 0; }
     .menu-sticky { padding: 64px 0; }
-    .specs-wrap { padding-bottom: 64px; }
+    .specs-wrap { padding-bottom: 64px; grid-template-columns: minmax(0, 1fr); gap: 48px; }
+    .real-shot { max-width: 220px; }
     .states { display: flex; width: 100%; }
     .states button { flex: 1 1 0; padding: 6px 4px; }
     dialog { padding: 28px 22px; width: calc(100% - 24px); }
@@ -784,6 +792,11 @@
       <div class="dark-note">Illustration of the menu. The car render comes from Tesla's
       configurator, exactly as in the app — which auto-detects your paint and wheels.</div>
     </div>
+    <figure class="real-shot">
+      <img src="menu-model-y.png" width="616" height="1176" loading="lazy"
+        alt="The Teslaris menu open on a Mac: a silver Tesla Model Y at 63% battery with 331 km of range, not plugged in, doors locked">
+      <figcaption>And the real thing — a Model Y, straight from a Mac's menu bar.</figcaption>
+    </figure>
   </div>
 </section>
 
