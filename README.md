@@ -54,6 +54,8 @@ launch wants a right-click → **Open**.
 - A warning when the car flags a tyre as low, and one when it has been
   sitting unlocked with nobody in it for ten minutes — each once, not on
   every refresh, and each with its own switch in Settings
+- A desktop widget in three sizes, showing what the app last fetched — it
+  never contacts Tesla itself, so it costs no Fleet API credits
 - Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit
   and battery) — the menu shows the last known data, marked as such
 - Choose what the menu bar shows; the icon reflects charging state
