@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Teslaris 0.6.0</title>
+<style>
+  /* Sparkle renders this in a small WebView that follows the system
+     appearance, so the page has to work in both and stay legible at
+     roughly 500 points wide. */
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    padding: 18px 20px 22px;
+    font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    color: #1d1d1f;
+    background: #fff;
+  }
+  h1 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
+  .date { margin: 2px 0 16px; font-size: 12px; color: #6e6e73; }
+  ul { margin: 0; padding-left: 18px; }
+  li { margin-bottom: 7px; }
+  a { color: #0a6cff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  footer { margin-top: 18px; font-size: 12px; color: #6e6e73; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f2f2f7; background: #1e1e1e; }
+    .date, footer { color: #9a9aa0; }
+    a { color: #6cb1ff; }
+  }
+</style>
+</head>
+<body>
+  <h1>Teslaris 0.6.0</h1>
+  <p class="date">October 5, 2026</p>
+  <ul>
+      <li><strong>The car on your desktop</strong> — small, medium and large widgets with battery, range, charging state and the car itself. They show what the app last fetched, so they cost no extra Fleet API credits, and a click opens the menu.</li>
+      <li><strong>Low tyre pressure warning</strong> — a notification when the car flags a tyre as low, once rather than on every refresh, and a row in the menu with the pressure for as long as the car keeps flagging it.</li>
+      <li><strong>Car left unlocked</strong> — a notification when the car has been sitting unlocked with nobody in it for ten minutes. Each of the two has its own switch in Settings.</li>
+  </ul>
+  <footer><a href="https://github.com/simonbusborg/teslaris/compare/preview-widget-1...v0.6.0">All changes on GitHub</a></footer>
+</body>
+</html>
