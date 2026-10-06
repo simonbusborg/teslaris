@@ -151,6 +151,8 @@ private struct BatteryBar: View {
     let fraction: Double
     let tint: Color
 
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
@@ -158,6 +160,11 @@ private struct BatteryBar: View {
                 Capsule()
                     .fill(tint)
                     .frame(width: max(2, geo.size.width * min(max(fraction, 0), 1)))
+                    // macOS's per-widget "Monochrome" appearance only keeps
+                    // content that opts into the system's tint pass — a
+                    // literal Color fill that doesn't gets dropped instead of
+                    // drawn in grayscale.
+                    .widgetAccentable(renderingMode != .fullColor)
             }
         }
         .frame(height: 6)
@@ -169,6 +176,8 @@ private struct BatteryBar: View {
 
 private struct StatusLabel: View {
     let snapshot: WidgetSnapshot
+
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     private var symbol: String {
         if snapshot.isAsleep { return "moon.zzz.fill" }
@@ -182,6 +191,15 @@ private struct StatusLabel: View {
             .labelStyle(.titleAndIcon)
             .font(.caption)
             .foregroundStyle(snapshot.isCharging ? Color.green : Color.secondary)
+            .lineLimit(1)
+            // The timestamp next to this is the less important of the two —
+            // "Not plugged in" wrapping onto a second line looked cramped,
+            // so the status text holds its width and the timestamp gives way.
+            .layoutPriority(1)
+            // Same tint-pass opt-in as BatteryBar: without this, the green
+            // "charging" color is a literal Color under Monochrome and the
+            // whole label can get dropped instead of drawn in grayscale.
+            .widgetAccentable(renderingMode != .fullColor)
     }
 }
 
@@ -303,6 +321,8 @@ struct MediumCarView: View {
     let snapshot: WidgetSnapshot
     let carImage: Image?
 
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
     var body: some View {
         HStack(spacing: 14) {
             if let carImage {
@@ -346,6 +366,7 @@ struct MediumCarView: View {
                         .font(.caption)
                         .foregroundStyle(snapshot.climateText != nil ? Color.secondary : Color.orange)
                         .lineLimit(1)
+                        .widgetAccentable(renderingMode != .fullColor)
                 }
 
                 HStack(spacing: 4) {
@@ -470,6 +491,7 @@ struct LargeCarView: View {
 
 struct TeslarisWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let entry: CarEntry
 
     var body: some View {
@@ -487,6 +509,11 @@ struct TeslarisWidgetEntryView: View {
                 NoData(problem: entry.problem ?? .nothingPolledYet)
             }
         }
+        // Set once here rather than per-view: widgetAccentable cascades as
+        // an environment value, and macOS's Tinted/Clear widget appearance
+        // doesn't just desaturate content that isn't marked — it hides it
+        // outright, which is what was making whole widgets go blank.
+        .widgetAccentable(renderingMode != .fullColor)
         .widgetURL(URL(string: "teslaris://open"))
         .widgetBackground()
     }
