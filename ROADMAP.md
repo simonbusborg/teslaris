@@ -55,6 +55,10 @@
 Every entry carries the version it shipped in; the release workflow turns
 the entries for a version into the notes Sparkle shows in its update panel.
 
+- **Sign-in asks again for missing permissions** (v0.7.1) — if Vehicle
+  Information was left unticked when you first signed in, signing in
+  again now brings Tesla's permission screen back instead of reusing the
+  old answer, and the menu says plainly when that permission is missing.
 - **Wake the car from the menu** (v0.7.0) — an opt-in in Settings. With it
   on, Wake Car & Refresh appears while the car sleeps and fetches fresh
   numbers once it answers. Teslaris still never wakes the car by itself;
