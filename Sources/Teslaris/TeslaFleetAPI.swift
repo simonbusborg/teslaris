@@ -96,7 +96,12 @@ final class TeslaFleetAPI: VehicleDataSource {
             URLQueryItem(name: "redirect_uri", value: Self.redirectURI),
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "scope", value: Self.scopes(allowWake: Preferences.allowWake)),
-            URLQueryItem(name: "state", value: state)
+            URLQueryItem(name: "state", value: state),
+            // Without this Tesla reuses the earlier consent and skips its
+            // permission screen, so an owner who once left Vehicle
+            // Information unticked could sign in again forever and still
+            // get 403s. With it, anything not yet granted is asked again.
+            URLQueryItem(name: "prompt_missing_scopes", value: "true")
         ]
 
         async let codeTask = Self.waitForCallback(expectedState: state)
@@ -434,7 +439,8 @@ final class TeslaFleetAPI: VehicleDataSource {
         if status == 408 { throw TeslarisError.vehicleAsleep }
         guard status == 200 else {
             debugLog("vehicle_data \(status): \(String(decoding: data, as: UTF8.self).prefix(300))")
-            throw Self.failure(for: status, body: data, request: "Vehicle data")
+            throw Self.failure(for: status, body: data, request: "Vehicle data",
+                               grantedScopes: Self.grantedScopes(accessToken: token))
         }
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -492,7 +498,8 @@ final class TeslaFleetAPI: VehicleDataSource {
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
         guard status == 200 else {
             debugLog("vehicles \(status): \(String(decoding: data, as: UTF8.self).prefix(300))")
-            throw Self.failure(for: status, body: data, request: "Vehicle list")
+            throw Self.failure(for: status, body: data, request: "Vehicle list",
+                               grantedScopes: Self.grantedScopes(accessToken: token))
         }
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let list = json["response"] as? [[String: Any]]
@@ -510,11 +517,15 @@ final class TeslaFleetAPI: VehicleDataSource {
     /// failed" gave testers nothing to report and us nothing to fix; the
     /// status code plus Tesla's own error text pins the cause, and the
     /// usual suspects get a hint at the fix. Static and pure for tests.
-    static func failure(for status: Int, body: Data, request: String) -> TeslarisError {
+    static func failure(for status: Int, body: Data, request: String,
+                        grantedScopes: Set<String>? = nil) -> TeslarisError {
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
-        let code = json?["error"] as? String
-        let detail = json?["error_description"] as? String
-            ?? (json?["error"] as? [String: Any])?["message"] as? String
+        // Tesla often sends "error_description": "" next to a real
+        // "error"; an empty string must not shadow the useful one.
+        let text: (Any?) -> String? = { ($0 as? String).flatMap { $0.isEmpty ? nil : $0 } }
+        let code = text(json?["error"])
+        let detail = text(json?["error_description"])
+            ?? text((json?["error"] as? [String: Any])?["message"])
             ?? code
         let tesla = detail.map { " (\($0))" } ?? ""
 
@@ -525,6 +536,10 @@ final class TeslaFleetAPI: VehicleDataSource {
             // Expired or revoked: only a fresh sign-in fixes this, and
             // .authenticationFailed is what opens Settings for it.
             return .authenticationFailed("Tesla no longer accepts this sign-in — sign in again\(tesla)")
+        case 403 where grantedScopes?.contains("vehicle_device_data") == false:
+            return .http("Tesla didn't grant Teslaris access to vehicle information — "
+                + "make sure your Tesla app has the vehicle_device_data scope, then sign in "
+                + "again and keep Vehicle Information ticked")
         case 403:
             return .http("\(request) refused (403) — sign in again and allow vehicle information\(tesla)")
         case 412:
@@ -538,6 +553,24 @@ final class TeslaFleetAPI: VehicleDataSource {
         default:
             return .http("\(request) returned \(status)\(tesla)")
         }
+    }
+
+    /// The scopes a Fleet API access token actually carries, read from its
+    /// JWT `scp` claim — what the owner granted, which can be less than
+    /// what was requested. Tesla doesn't document the claim, so anything
+    /// unexpected returns nil and callers fall back to the generic hint.
+    static func grantedScopes(accessToken: String) -> Set<String>? {
+        let parts = accessToken.split(separator: ".")
+        guard parts.count == 3 else { return nil }
+        var payload = parts[1].replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
+        guard let data = Data(base64Encoded: payload),
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return nil }
+        if let list = json["scp"] as? [String] { return Set(list) }
+        if let line = json["scp"] as? String { return Set(line.split(separator: " ").map(String.init)) }
+        return nil
     }
 
     private func authed(url: URL, token: String, method: String = "GET",

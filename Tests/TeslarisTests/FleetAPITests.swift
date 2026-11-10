@@ -303,6 +303,45 @@ final class FleetAPITests: XCTestCase {
         XCTAssertTrue(error.localizedDescription.contains("Mobile Access"))
     }
 
+    /// Jeppe's 403 read "allow vehicle information ()": Tesla sent an empty
+    /// error_description beside the real error, and the empty one won.
+    func testEmptyDescriptionDoesNotHideTeslasError() {
+        let message = failure(403, #"{"response":null,"error":"Unauthorized missing scopes","error_description":""}"#)
+            .localizedDescription
+        XCTAssertTrue(message.contains("Unauthorized missing scopes"))
+        XCTAssertFalse(message.contains("()"))
+    }
+
+    /// A JWT whose payload is `claims`; header and signature don't matter.
+    private func jwt(_ claims: String) -> String {
+        let payload = Data(claims.utf8).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        return "eyJhbGciOiJSUzI1NiJ9.\(payload).signature"
+    }
+
+    func testGrantedScopesFromToken() {
+        XCTAssertEqual(TeslaFleetAPI.grantedScopes(accessToken: jwt(#"{"scp":["openid","vehicle_device_data"]}"#)),
+                       ["openid", "vehicle_device_data"])
+        XCTAssertEqual(TeslaFleetAPI.grantedScopes(accessToken: jwt(#"{"scp":"openid offline_access"}"#)),
+                       ["openid", "offline_access"])
+        XCTAssertNil(TeslaFleetAPI.grantedScopes(accessToken: jwt(#"{"sub":"x"}"#)))
+        XCTAssertNil(TeslaFleetAPI.grantedScopes(accessToken: "not-a-jwt"))
+    }
+
+    /// When the token shows vehicle data was never granted, say exactly
+    /// that instead of a bare 403.
+    func testForbiddenWithoutVehicleScopeNamesTheMissingGrant() {
+        let missing = TeslaFleetAPI.failure(for: 403, body: Data(), request: "Vehicle list",
+                                            grantedScopes: ["openid", "offline_access"])
+        XCTAssertTrue(missing.localizedDescription.contains("didn't grant"))
+        let granted = TeslaFleetAPI.failure(for: 403, body: Data(), request: "Vehicle list",
+                                            grantedScopes: ["openid", "vehicle_device_data"])
+        XCTAssertTrue(granted.localizedDescription.contains("403"))
+        XCTAssertFalse(granted.localizedDescription.contains("didn't grant"))
+    }
+
     func testUnknownStatusKeepsTeslasWording() {
         let message = failure(418, #"{"error":"teapot","error_description":"short and stout"}"#)
             .localizedDescription
