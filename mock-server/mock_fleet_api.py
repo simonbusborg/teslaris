@@ -15,7 +15,10 @@ Scenario control (curl or browser):
     /debug/scenario/complete     charged to the limit
     /debug/scenario/open         unlocked, a window and the trunk open
     /debug/scenario/tyre         rear-left tyre low, flagged by the car
-    /debug/scenario/asleep       vehicle_data returns 408
+    /debug/scenario/asleep       vehicle_data returns 408; wake_up wakes it
+                                 to idle about 8 s later
+    /debug/scenario/nowake       asleep, and wake_up returns 403 (token
+                                 without vehicle_cmds)
     /debug/scenario/unregistered vehicle list returns 412
     /debug/scenario/wrongregion  vehicle list returns 421
 """
@@ -25,7 +28,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 PORT = 4321
-STATE = {"scenario": "idle", "battery": 62.0}
+STATE = {"scenario": "idle", "battery": 62.0, "awake_at": None}
 
 SCENARIOS = {
     "idle":     {"charging_state": "Disconnected"},
@@ -35,9 +38,19 @@ SCENARIOS = {
     "open":     {"charging_state": "Disconnected", "open": True},
     "tyre":     {"charging_state": "Disconnected", "tyre": True},
     "asleep":   {},
+    "nowake":   {},
     "unregistered": {},
     "wrongregion":  {},
 }
+
+ASLEEP = ("asleep", "nowake")
+
+
+def settle_wake():
+    """A wake lands a few seconds after it was sent, like the real car."""
+    if STATE["awake_at"] and time.time() >= STATE["awake_at"]:
+        STATE["scenario"] = "idle"
+        STATE["awake_at"] = None
 
 
 def vehicle_data():
@@ -129,6 +142,17 @@ class Handler(BaseHTTPRequestHandler):
                 "expires_in": 3600,
                 "token_type": "Bearer",
             })
+        elif self.path.endswith("/wake_up"):
+            if STATE["scenario"] == "nowake":
+                self._json({"error": "Unauthorized missing scopes"}, 403)
+                return
+            if STATE["scenario"] == "asleep" and not STATE["awake_at"]:
+                STATE["awake_at"] = time.time() + 8
+            settle_wake()
+            self._json({"response": {
+                "vin": "5YJ3E1EA1NF000000",
+                "state": "asleep" if STATE["scenario"] in ASLEEP else "online",
+            }})
         elif self.path == "/api/1/partner_accounts":
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
@@ -141,6 +165,7 @@ class Handler(BaseHTTPRequestHandler):
             name = self.path.rsplit("/", 1)[-1]
             if name in SCENARIOS:
                 STATE["scenario"] = name
+                STATE["awake_at"] = None
                 self._json({"ok": True, "scenario": name})
             else:
                 self._json({"error": f"unknown scenario, pick one of {list(SCENARIOS)}"}, 400)
@@ -150,15 +175,17 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/1/vehicles" and STATE["scenario"] == "wrongregion":
             self._json({"response": None, "error": "user out of region"}, 421)
         elif self.path == "/api/1/vehicles":
+            settle_wake()
             self._json({"response": [{
                 "vin": "5YJ3E1EA1NF000000",
                 "display_name": "Mock S",
-                "state": "asleep" if STATE["scenario"] == "asleep" else "online",
+                "state": "asleep" if STATE["scenario"] in ASLEEP else "online",
             }], "count": 1})
         elif "/vehicle_data" in self.path:
+            settle_wake()
             if self.headers.get("Authorization") != "Bearer mock-access-token":
                 self._json({"error": "invalid token"}, 401)
-            elif STATE["scenario"] == "asleep":
+            elif STATE["scenario"] in ASLEEP:
                 self._json({"error": "vehicle unavailable"}, 408)
             else:
                 self._json(vehicle_data())

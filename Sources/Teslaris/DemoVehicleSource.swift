@@ -66,4 +66,13 @@ final class DemoVehicleSource: VehicleDataSource {
         data.wheelType = "Nova19"
         return entry.asleep ? data.asAsleep() : data
     }
+
+    /// Plays the wake as the real thing feels: a pause, then the next
+    /// awake step of the timeline.
+    func wakeAndFetchVehicleData(vin: String) async throws -> VehicleData {
+        try await Task.sleep(nanoseconds: 3_000_000_000)
+        var data = try await fetchVehicleData(vin: vin)
+        data.isAsleep = false
+        return data
+    }
 }

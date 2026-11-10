@@ -21,6 +21,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
     private let unitPopup = NSPopUpButton()
     private let refreshPopup = NSPopUpButton()
     private let launchCheckbox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
+    private let wakeCheckbox = NSButton(checkboxWithTitle: "Offer Wake Car & Refresh while the car sleeps",
+                                        target: nil, action: nil)
     private let notifyStartCheckbox = NSButton(checkboxWithTitle: "Charging started", target: nil, action: nil)
     private let notifyDoneCheckbox = NSButton(checkboxWithTitle: "Charging complete", target: nil, action: nil)
     private let notifyProblemCheckbox = NSButton(checkboxWithTitle: "Charging problems", target: nil, action: nil)
@@ -139,6 +141,17 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         refreshPopup.setAccessibilityLabel("Refresh while parked")
         lowThresholdPopup.setAccessibilityLabel("Low battery threshold")
 
+        // Waking is the one thing beyond read-only, so the cost and the
+        // extra permission are spelled out where it is switched on.
+        let wakeHelp = NSTextField(labelWithString: "Each wake costs ten updates' worth of credit "
+            + "and keeps the car awake for a while. Needs the vehicle_cmds scope on your Tesla "
+            + "app, which also covers commands Teslaris never sends — sign in again after "
+            + "turning this on.")
+        wakeHelp.font = .systemFont(ofSize: 11)
+        wakeHelp.textColor = .secondaryLabelColor
+        wakeHelp.lineBreakMode = .byWordWrapping
+        wakeHelp.preferredMaxLayoutWidth = 340
+
         let guideLink = NSTextField(labelWithString: "Use the key domain as the Allowed Origin when you create your (free) Tesla developer app — see the setup guide.")
         guideLink.font = .systemFont(ofSize: 11)
         guideLink.textColor = .secondaryLabelColor
@@ -185,6 +198,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
             [label("Distances:"), unitPopup],
             [label("While parked:"), refreshPopup],
             [NSGridCell.emptyContentView, refreshHelp],
+            [label("Waking:"), wakeCheckbox],
+            [NSGridCell.emptyContentView, wakeHelp],
             [NSGridCell.emptyContentView, launchCheckbox],
             [label("Notify about:"), notifyStartCheckbox],
             [NSGridCell.emptyContentView, notifyDoneCheckbox],
@@ -201,7 +216,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         grid.rowAlignment = .firstBaseline
         grid.column(at: 0).xPlacement = .trailing
         for control in [regionPopup, displayPopup, unitPopup, refreshPopup, refreshHelp,
-                        launchCheckbox, generateKeysButton, registerButton, domainStatus,
+                        wakeCheckbox, wakeHelp, launchCheckbox, generateKeysButton, registerButton, domainStatus,
                         credentialStatus, notifyStartCheckbox, notifyDoneCheckbox,
                         notifyProblemCheckbox, lowRow, notifyTyreCheckbox,
                         notifyUnlockedCheckbox, autoCheckCheckbox, autoInstallCheckbox,
@@ -216,13 +231,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         grid.row(at: 8).topPadding = -2    // Register hugs its inputs
         grid.row(at: 9).topPadding = 14    // display preferences
         grid.row(at: 12).topPadding = -6   // help hugs the refresh popup
-        grid.row(at: 14).topPadding = 10   // notifications
-        grid.row(at: 15).topPadding = -6
-        grid.row(at: 16).topPadding = -6
+        grid.row(at: 13).topPadding = 10   // waking
+        grid.row(at: 14).topPadding = -6   // its cost hugs the checkbox
+        grid.row(at: 16).topPadding = 10   // notifications
         grid.row(at: 17).topPadding = -6
-        grid.row(at: 18).topPadding = 10   // updates
+        grid.row(at: 18).topPadding = -6
         grid.row(at: 19).topPadding = -6
-        grid.row(at: 20).topPadding = -6
+        grid.row(at: 20).topPadding = 10   // updates
+        grid.row(at: 21).topPadding = -6
+        grid.row(at: 22).topPadding = -6
 
         grid.translatesAutoresizingMaskIntoConstraints = false
 
@@ -267,6 +284,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
         unitPopup.selectItem(withTitle: Preferences.distanceUnit.rawValue)
         refreshPopup.selectItem(at: RefreshInterval.allCases.firstIndex(of: Preferences.refreshInterval) ?? 0)
         launchCheckbox.state = Preferences.launchAtLogin ? .on : .off
+        wakeCheckbox.state = Preferences.allowWake ? .on : .off
         notifyStartCheckbox.state = Preferences.notifyChargingStarted ? .on : .off
         notifyDoneCheckbox.state = Preferences.notifyChargingComplete ? .on : .off
         notifyProblemCheckbox.state = Preferences.notifyChargingProblem ? .on : .off
@@ -403,6 +421,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSTe
             Preferences.distanceUnit = unit
         }
         Preferences.launchAtLogin = (launchCheckbox.state == .on)
+        Preferences.allowWake = (wakeCheckbox.state == .on)
         Preferences.notifyChargingStarted = (notifyStartCheckbox.state == .on)
         Preferences.notifyChargingComplete = (notifyDoneCheckbox.state == .on)
         Preferences.notifyChargingProblem = (notifyProblemCheckbox.state == .on)

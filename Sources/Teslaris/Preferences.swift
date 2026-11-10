@@ -59,6 +59,14 @@ enum Preferences {
         set { d.set(newValue, forKey: "tesla_client_id") }
     }
 
+    /// Opt-in to waking a sleeping car from the menu. Off by default:
+    /// it needs the vehicle_cmds scope, which Teslaris otherwise never
+    /// asks for, and each wake bills ten times a data request.
+    static var allowWake: Bool {
+        get { d.bool(forKey: "allow_wake") }
+        set { d.set(newValue, forKey: "allow_wake") }
+    }
+
     static var vin: String {
         get { d.string(forKey: "tesla_vin") ?? "" }
         set { d.set(newValue, forKey: "tesla_vin") }

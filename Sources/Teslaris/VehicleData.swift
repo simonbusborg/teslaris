@@ -107,8 +107,9 @@ enum TeslarisError: Error, LocalizedError {
     case parse(String)
     case notConfigured
     case authenticationFailed(String)
-    /// Fleet API returns 408 for a sleeping vehicle. Never wake it —
-    /// wakes cost money and drain the battery.
+    /// Fleet API returns 408 for a sleeping vehicle. Never wake it on a
+    /// timer — wakes cost money and drain the battery. Only an explicit
+    /// Wake Car & Refresh, opted into in Settings, does.
     case vehicleAsleep
 
     var errorDescription: String? {
@@ -129,4 +130,6 @@ protocol VehicleDataSource: AnyObject {
     /// Restore a persisted session (refresh token). Throws when there is none.
     func restoreSession() async throws
     func fetchVehicleData(vin: String) async throws -> VehicleData
+    /// Wakes a sleeping car and returns fresh data once it answers.
+    func wakeAndFetchVehicleData(vin: String) async throws -> VehicleData
 }
