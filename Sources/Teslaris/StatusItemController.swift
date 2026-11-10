@@ -29,6 +29,13 @@ final class StatusItemController {
     var activeVin: String?
     var onSelectVehicle: ((String) -> Void)?
 
+    /// Wake Car & Refresh shows only while the car sleeps and the owner
+    /// has opted in to waking; a wake in flight replaces it with a
+    /// disabled "Waking car…" so it can't be sent twice.
+    var onWake: (() -> Void)?
+    var carAsleep = false
+    var isWaking = false
+
     private let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .none
@@ -284,6 +291,15 @@ final class StatusItemController {
         refresh.target = self
         menu.addItem(refresh)
 
+        if isWaking {
+            menu.addItem(Self.infoItem("Waking car…"))
+        } else if carAsleep && Preferences.allowWake && onWake != nil {
+            let wake = NSMenuItem(title: "Wake Car & Refresh", action: #selector(wakeAction),
+                                  keyEquivalent: "")
+            wake.target = self
+            menu.addItem(wake)
+        }
+
         let settings = NSMenuItem(title: "Settings…", action: #selector(settingsAction), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -304,6 +320,7 @@ final class StatusItemController {
     // MARK: - Actions
 
     @objc private func refreshAction() { onRefresh() }
+    @objc private func wakeAction() { onWake?() }
     @objc private func settingsAction() { onSettings() }
     @objc private func selectVehicleAction(_ sender: NSMenuItem) {
         guard let vin = sender.representedObject as? String, vin != activeVin else { return }

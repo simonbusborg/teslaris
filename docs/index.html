@@ -788,8 +788,9 @@
       </div>
       <div class="card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4c-5 0-8 4.5-8 8s3 8 8 8 8-4.5 8-8-3-8-8-8z" opacity="0"/><path d="M3 13c2-4.5 5.5-7 9-7s7 2.5 9 7c-2 4.5-5.5 7-9 7s-7-2.5-9-7z"/><circle cx="12" cy="13" r="3"/></svg>
-        <h3>Read-only by design</h3><p>The only scope requested is
-        <code>vehicle_device_data</code>. Teslaris cannot unlock, wake, or drive your car.</p>
+        <h3>Read-only by design</h3><p>By default the only scope requested is
+        <code>vehicle_device_data</code>, so Teslaris cannot unlock, wake, or drive your car.
+        Opting in to waking adds <code>vehicle_cmds</code>, used for nothing else.</p>
       </div>
       <div class="card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -798,8 +799,9 @@
       </div>
       <div class="card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14c3-1.5 5-5 6-9 1.5 3 2 5 6 6-2 1-3 2.5-3.5 5-1.5-1-4-2-8.5-2z"/><path d="M17 4l.8 2.2L20 7l-2.2.8L17 10l-.8-2.2L14 7l2.2-.8z"/></svg>
-        <h3>Never wakes the car</h3><p>A sleeping Tesla stays asleep — wakes cost credit
-        and battery. You see the last known data, marked as such.</p>
+        <h3>Never wakes the car on its own</h3><p>A sleeping Tesla stays asleep — wakes cost
+        credit and battery. You see the last known data, marked as such, unless you opt in
+        and wake it from the menu.</p>
       </div>
       <div class="card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18" opacity="0"/><path d="M8 21h8M12 18v3"/></svg>
@@ -1038,8 +1040,9 @@
               <dd>Leave it empty.</dd>
 
               <dt>Scope</dt>
-              <dd><code>vehicle_device_data</code>, and nothing else — Teslaris is
-              read-only and needs no other permission.</dd>
+              <dd><code>vehicle_device_data</code> — Teslaris is read-only and needs no
+              other permission. Add <code>vehicle_cmds</code> only if you want to wake the
+              car from the menu.</dd>
 
               <dt>Payment method</dt>
               <dd>Required — under <strong>Billing and Usage</strong>, add a card and
@@ -1102,14 +1105,17 @@
     </details>
     <details>
       <summary>Will it wake my car or drain the battery?</summary>
-      <p>No. Teslaris never wakes a sleeping vehicle — it shows the last known data,
-      marked as such, until the car wakes on its own. Wakes cost API credit and drain the
-      battery, so not waking is a feature, not a limitation.</p>
+      <p>Not unless you ask it to. Teslaris never wakes a sleeping vehicle on its own — it
+      shows the last known data, marked as such, until the car wakes by itself. Wakes cost
+      API credit and drain the battery, so not waking is a feature, not a limitation. If you
+      turn on waking in Settings, Wake Car &amp; Refresh appears in the menu while the car
+      sleeps, and nothing wakes it until you click that.</p>
     </details>
     <details>
       <summary>Can it unlock or control the car?</summary>
-      <p>No. The only scope Teslaris ever requests is <code>vehicle_device_data</code> —
-      read-only. Even if you wanted it to open the trunk, it can't.</p>
+      <p>No. Teslaris never sends commands. By default the only scope it requests is
+      <code>vehicle_device_data</code> — read-only. If you opt in to waking, it also requests
+      <code>vehicle_cmds</code> and uses it for the wake request alone.</p>
     </details>
     <details>
       <summary>Why do I need my own Tesla developer app?</summary>

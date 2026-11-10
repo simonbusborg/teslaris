@@ -7,9 +7,11 @@
 //  client secret from the Keychain — so usage bills against their own
 //  $10/month credit and Teslaris itself has no server and no costs.
 //
-//  Read-only by design: the only scope requested is vehicle_device_data.
-//  Sleeping vehicles are never woken (wakes cost money and battery);
-//  a 408 surfaces as .vehicleAsleep and the UI shows cached data.
+//  Read-only by default: the only scope requested is vehicle_device_data.
+//  Sleeping vehicles are never woken on their own (wakes cost money and
+//  battery); a 408 surfaces as .vehicleAsleep and the UI shows cached
+//  data. Waking is an opt-in in Settings — only then is vehicle_cmds
+//  requested, and only a click on Wake Car & Refresh sends a wake.
 //
 
 import AppKit
@@ -36,7 +38,12 @@ final class TeslaFleetAPI: VehicleDataSource {
     static let redirectURI = "https://teslaris-keys.weareheavy.dev/oauth/callback"
     /// Where that bounce lands, and what the listener binds.
     static let callbackPort: UInt16 = 8973
-    private let scopes = "openid offline_access vehicle_device_data"
+    /// vehicle_cmds is Tesla's only scope that allows wake_up, and it
+    /// also covers unlock and remote start — so it is asked for only when
+    /// the user has opted in to waking, never by default.
+    static func scopes(allowWake: Bool) -> String {
+        "openid offline_access vehicle_device_data" + (allowWake ? " vehicle_cmds" : "")
+    }
 
     private var apiBase: String {
         // Developer override for the local mock server:
@@ -88,7 +95,7 @@ final class TeslaFleetAPI: VehicleDataSource {
             URLQueryItem(name: "client_id", value: clientId),
             URLQueryItem(name: "redirect_uri", value: Self.redirectURI),
             URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: scopes),
+            URLQueryItem(name: "scope", value: Self.scopes(allowWake: Preferences.allowWake)),
             URLQueryItem(name: "state", value: state)
         ]
 
@@ -436,6 +443,49 @@ final class TeslaFleetAPI: VehicleDataSource {
         return Self.parseVehicleData(vehicle, now: Date())
     }
 
+    /// Wakes a sleeping car, then fetches fresh data once it answers. Only
+    /// ever called from an explicit click, never from the poll timer: a
+    /// wake bills ten times a data request and keeps the car awake.
+    func wakeAndFetchVehicleData(vin: String) async throws -> VehicleData {
+        try await refreshTokenIfNeeded()
+        guard let token = accessToken else { throw TeslarisError.notConfigured }
+
+        if vehicles.isEmpty { try await loadVehicles(token: token) }
+        let targetVin = vin.isEmpty ? (vehicles.first?.vin ?? "") : vin
+        guard !targetVin.isEmpty else { throw TeslarisError.parse("no vehicles on account") }
+
+        let url = URL(string: "\(apiBase)/api/1/vehicles/\(targetVin)/wake_up")!
+        let (data, response) = try await authed(url: url, token: token, method: "POST",
+                                                billedAs: UsageMeter.wakeCost)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard status == 200 else {
+            debugLog("wake_up \(status): \(String(decoding: data, as: UTF8.self).prefix(300))")
+            // A token from before the opt-in lacks vehicle_cmds; Tesla
+            // answers that with 403, and only a new sign-in grants it.
+            if status == 403 {
+                throw TeslarisError.http("Waking needs permission Teslaris doesn't have yet — "
+                    + "add vehicle_cmds to your Tesla app, then sign in again in Settings")
+            }
+            throw Self.failure(for: status, body: data, request: "Wake")
+        }
+
+        // A car typically answers within 10–30 s. vehicle_data returns 408
+        // until then, so polling it directly costs no extra request for the
+        // final fetch. Bounded, so a car out of coverage can't run up a bill.
+        for delay in Self.wakePollDelays {
+            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            do {
+                return try await fetchVehicleData(vin: targetVin)
+            } catch TeslarisError.vehicleAsleep {
+                continue
+            }
+        }
+        throw TeslarisError.http("The car didn't wake within a minute — it may be out of coverage")
+    }
+
+    /// Seconds between checks while a car wakes: ~60 s in nine requests.
+    static let wakePollDelays: [Double] = [5, 5, 5, 5, 7, 7, 8, 9, 9]
+
     private func loadVehicles(token: String) async throws {
         let url = URL(string: "\(apiBase)/api/1/vehicles")!
         let (data, response) = try await authed(url: url, token: token)
@@ -490,10 +540,12 @@ final class TeslaFleetAPI: VehicleDataSource {
         }
     }
 
-    private func authed(url: URL, token: String) async throws -> (Data, URLResponse) {
+    private func authed(url: URL, token: String, method: String = "GET",
+                        billedAs units: Int = 1) async throws -> (Data, URLResponse) {
         var request = URLRequest(url: url)
+        request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        UsageMeter.record()   // every authed data call is a billed request
+        UsageMeter.record(units)   // every authed data call is a billed request
         return try await session.data(for: request)
     }
 

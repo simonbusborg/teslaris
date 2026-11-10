@@ -27,16 +27,21 @@ enum UsageMeter {
         return formatter.string(from: Date())
     }
 
-    /// Call once per billed data request (vehicle list, vehicle data).
+    /// What one wake costs in data requests: Tesla bills wakes at 50 per
+    /// $1 against data at 500 per $1, so the gauge counts a wake as ten.
+    static let wakeCost = 10
+
+    /// Call once per billed data request (vehicle list, vehicle data),
+    /// with `units` above 1 for pricier calls such as a wake.
     /// Auth-endpoint traffic is not billed and not counted.
-    static func record() {
+    static func record(_ units: Int = 1) {
         let defaults = UserDefaults.standard
         let month = currentMonth
         if defaults.string(forKey: monthKey) != month {
             defaults.set(month, forKey: monthKey)
             defaults.set(0, forKey: countKey)
         }
-        defaults.set(defaults.integer(forKey: countKey) + 1, forKey: countKey)
+        defaults.set(defaults.integer(forKey: countKey) + units, forKey: countKey)
     }
 
     /// Time until the count resets, which is what the remaining credits
