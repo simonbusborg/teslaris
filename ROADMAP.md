@@ -83,4 +83,6 @@ the entries for a version into the notes Sparkle shows in its update panel.
 Vehicle commands (`vehicle_charging_cmds`) and location
 (`vehicle_location`) were proposed and declined 2026-08-02 — Teslaris
 stays read-only by design, that's part of the product pitch. Don't
-re-propose unless this changes.
+re-propose unless this changes. The one exception, added 2026-11-10 for #5: waking the car
+is an opt-in in Settings, which adds `vehicle_cmds` (Tesla's only scope
+covering wake_up) and uses it for nothing else.

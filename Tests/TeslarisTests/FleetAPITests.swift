@@ -313,4 +313,21 @@ final class FleetAPITests: XCTestCase {
     func testNonJSONBodyStillReportsStatus() {
         XCTAssertTrue(failure(502, "<html>Bad Gateway</html>").localizedDescription.contains("502"))
     }
+    // MARK: - Wake opt-in
+
+    /// vehicle_cmds also covers unlock and remote start: it must never be
+    /// requested unless the owner opted in to waking.
+    func testDefaultScopesStayReadOnly() {
+        XCTAssertFalse(TeslaFleetAPI.scopes(allowWake: false).contains("vehicle_cmds"))
+        XCTAssertTrue(TeslaFleetAPI.scopes(allowWake: true).contains("vehicle_cmds"))
+        XCTAssertTrue(TeslaFleetAPI.scopes(allowWake: true).contains("vehicle_device_data"))
+    }
+
+    /// A wake waits about a minute at most, in a bounded number of
+    /// billed checks, so a car out of coverage can't run up a bill.
+    func testWakePollingIsBounded() {
+        let delays = TeslaFleetAPI.wakePollDelays
+        XCTAssertLessThanOrEqual(delays.count, 10)
+        XCTAssertEqual(delays.reduce(0, +), 60, accuracy: 5)
+    }
 }

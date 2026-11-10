@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onRefresh: { [weak self] in self?.refreshNow() },
             onSettings: { [weak self] in self?.showSettings() }
         )
+        statusController.onWake = { [weak self] in self?.wakeAndRefresh() }
         statusController.onSelectVehicle = { [weak self] vin in self?.switchVehicle(to: vin) }
         if updater.isAvailable {
             statusController.onCheckForUpdates = { [weak self] in self?.updater.checkForUpdates() }
@@ -162,10 +163,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The one path that wakes the car: a click on Wake Car & Refresh,
+    /// which the menu offers only when the owner opted in and the car is
+    /// asleep. The poll timer keeps running through refreshNow, which
+    /// still never wakes.
+    func wakeAndRefresh() {
+        guard Preferences.allowWake, !statusController.isWaking else { return }
+        statusController.isWaking = true
+        statusController.render(data: latest, error: nil, authenticated: true)
+        Task {
+            do {
+                let data = try await source.wakeAndFetchVehicleData(vin: Preferences.vin)
+                await MainActor.run {
+                    self.statusController.isWaking = false
+                    self.apply(data)
+                }
+            } catch {
+                await MainActor.run {
+                    self.statusController.isWaking = false
+                    self.lastError = error.localizedDescription
+                    self.statusController.render(data: self.latest, error: error.localizedDescription,
+                                                 authenticated: true)
+                    if Self.isSignedOut(error) { self.showSettings() }
+                }
+            }
+        }
+    }
+
     private func apply(_ data: VehicleData) {
         notifier.vehicleDataDidUpdate(old: latest, new: data)
         latest = data
         lastError = nil
+        statusController.carAsleep = false
         statusController.vehicles = source.vehicles
         statusController.activeVin = Preferences.vin.isEmpty
             ? source.vehicles.first?.vin : Preferences.vin
@@ -180,8 +209,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// A sleeping car is not an error: keep showing the last known data,
-    /// flagged as such. Never wake it — wakes cost money and battery.
+    /// flagged as such. Never wake it from here — wakes cost money and
+    /// battery; only the opt-in Wake Car & Refresh click does.
     private func applyAsleep() {
+        // Tracked apart from `latest`: a car asleep since launch has no
+        // data to flag, but the wake item must still be on offer.
+        statusController.carAsleep = true
         if let latest {
             self.latest = latest.asAsleep()
             notifier.vehicleIsAsleep(cached: latest)

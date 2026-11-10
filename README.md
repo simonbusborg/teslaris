@@ -56,8 +56,9 @@ launch wants a right-click → **Open**.
   every refresh, and each with its own switch in Settings
 - A desktop widget in three sizes, showing what the app last fetched — it
   never contacts Tesla itself, so it costs no Fleet API credits
-- Sleep-aware: a sleeping car is never woken (wakes cost Fleet API credit
-  and battery) — the menu shows the last known data, marked as such
+- Sleep-aware: a sleeping car is never woken on its own (wakes cost Fleet API
+  credit and battery) — the menu shows the last known data, marked as such.
+  Waking it from the menu is an opt-in in Settings
 - Choose what the menu bar shows; the icon reflects charging state
 - Credentials and session in the macOS Keychain, never in plaintext
 - Launch at login (optional), and in-app updates — checked and installed
@@ -71,9 +72,10 @@ of ~5,000 requests **per developer account**. If Teslaris shipped with one
 shared API key, every user's polling would drain one account's credits and
 the app would have to charge a subscription. Instead, each user registers
 their own free developer application once (~20 minutes) and Teslaris's
-modest polling stays comfortably inside their own free credits. Teslaris requests only the
-read-only `vehicle_device_data` scope — it cannot unlock, wake, or drive
-your car.
+modest polling stays comfortably inside their own free credits. By default Teslaris requests
+only the read-only `vehicle_device_data` scope — it cannot unlock, wake, or
+drive your car. Opting in to waking adds `vehicle_cmds`, which Teslaris uses
+for the wake request alone.
 
 ## Setup guide
 
@@ -103,7 +105,8 @@ public file (GitHub Pages works — you already have GitHub).
    sign in with your Tesla account → "Create new application". Use your
    domain from step 2 as *Allowed Origin*, and add
    `https://teslaris-keys.weareheavy.dev/oauth/callback` as an *Allowed Redirect URI*.
-   Request the `vehicle_device_data` scope. Note the **Client ID** and
+   Request the `vehicle_device_data` scope — plus `vehicle_cmds` only if you
+   want to wake the car from the menu. Note the **Client ID** and
    **Client Secret**.
 
 4. **Teslaris**: menu bar icon → Settings… → paste Client ID, Client
