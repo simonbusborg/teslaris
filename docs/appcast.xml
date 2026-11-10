@@ -13,6 +13,16 @@
     <language>en</language>
     <!-- items -->
     <item>
+      <title>0.7.1</title>
+      <pubDate>Tue, 10 Nov 2026 10:49:37 +0000</pubDate>
+      <sparkle:version>15</sparkle:version>
+      <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://simonbusborg.github.io/teslaris/notes/v0.7.1.html</sparkle:releaseNotesLink>
+      <enclosure url="https://github.com/simonbusborg/teslaris/releases/download/v0.7.1/Teslaris.zip"
+                 type="application/octet-stream" sparkle:edSignature="gCVqC/fuGM4b/qhNH10C9ThQVcNbBomWGP7X/u1TAYuLSzHnR0r//BCjQzzAHhbCPZEzg4+Kl6bZHlwB9EvhBg==" length="1799635" />
+    </item>
+    <item>
       <title>0.7.0</title>
       <pubDate>Tue, 10 Nov 2026 10:21:08 +0000</pubDate>
       <sparkle:version>14</sparkle:version>
