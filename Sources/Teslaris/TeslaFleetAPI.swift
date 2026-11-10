@@ -425,7 +425,10 @@ final class TeslaFleetAPI: VehicleDataSource {
         let (data, response) = try await authed(url: url, token: token)
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
         if status == 408 { throw TeslarisError.vehicleAsleep }
-        guard status == 200 else { throw TeslarisError.http("vehicle_data returned \(status)") }
+        guard status == 200 else {
+            debugLog("vehicle_data \(status): \(String(decoding: data, as: UTF8.self).prefix(300))")
+            throw Self.failure(for: status, body: data, request: "Vehicle data")
+        }
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let vehicle = json["response"] as? [String: Any]
@@ -436,16 +439,54 @@ final class TeslaFleetAPI: VehicleDataSource {
     private func loadVehicles(token: String) async throws {
         let url = URL(string: "\(apiBase)/api/1/vehicles")!
         let (data, response) = try await authed(url: url, token: token)
-        guard (response as? HTTPURLResponse)?.statusCode == 200,
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard status == 200 else {
+            debugLog("vehicles \(status): \(String(decoding: data, as: UTF8.self).prefix(300))")
+            throw Self.failure(for: status, body: data, request: "Vehicle list")
+        }
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let list = json["response"] as? [[String: Any]]
-        else { throw TeslarisError.http("vehicles list failed") }
+        else { throw TeslarisError.parse("unexpected vehicle list response") }
 
         vehicles = list.compactMap { entry in
             guard let vin = entry["vin"] as? String else { return nil }
             let name = (entry["display_name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             let model = CarImage.modelName(vin: vin).map { "Tesla \($0)" }
             return VehicleSummary(vin: vin, title: name ?? model ?? "Tesla")
+        }
+    }
+
+    /// Turns a non-200 into something a user can act on. A bare "request
+    /// failed" gave testers nothing to report and us nothing to fix; the
+    /// status code plus Tesla's own error text pins the cause, and the
+    /// usual suspects get a hint at the fix. Static and pure for tests.
+    static func failure(for status: Int, body: Data, request: String) -> TeslarisError {
+        let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
+        let code = json?["error"] as? String
+        let detail = json?["error_description"] as? String
+            ?? (json?["error"] as? [String: Any])?["message"] as? String
+            ?? code
+        let tesla = detail.map { " (\($0))" } ?? ""
+
+        switch status {
+        case 401 where code == "mobile_access_disabled":
+            return .http("Remote access is turned off in the car — enable Mobile Access in the car's Safety settings")
+        case 401:
+            // Expired or revoked: only a fresh sign-in fixes this, and
+            // .authenticationFailed is what opens Settings for it.
+            return .authenticationFailed("Tesla no longer accepts this sign-in — sign in again\(tesla)")
+        case 403:
+            return .http("\(request) refused (403) — sign in again and allow vehicle information\(tesla)")
+        case 412:
+            return .http("\(request) refused (412) — the app isn't registered in this region; click Register App with Tesla in Settings\(tesla)")
+        case 421:
+            return .http("\(request) refused (421) — the account belongs to the other region; change Region in Settings\(tesla)")
+        case 429:
+            return .http("\(request) rate limited (429) — try again in a minute")
+        case 500...:
+            return .http("\(request) failed — Tesla's servers returned \(status)\(tesla)")
+        default:
+            return .http("\(request) returned \(status)\(tesla)")
         }
     }
 

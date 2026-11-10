@@ -16,6 +16,8 @@ Scenario control (curl or browser):
     /debug/scenario/open         unlocked, a window and the trunk open
     /debug/scenario/tyre         rear-left tyre low, flagged by the car
     /debug/scenario/asleep       vehicle_data returns 408
+    /debug/scenario/unregistered vehicle list returns 412
+    /debug/scenario/wrongregion  vehicle list returns 421
 """
 
 import json
@@ -33,6 +35,8 @@ SCENARIOS = {
     "open":     {"charging_state": "Disconnected", "open": True},
     "tyre":     {"charging_state": "Disconnected", "tyre": True},
     "asleep":   {},
+    "unregistered": {},
+    "wrongregion":  {},
 }
 
 
@@ -140,6 +144,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "scenario": name})
             else:
                 self._json({"error": f"unknown scenario, pick one of {list(SCENARIOS)}"}, 400)
+        elif self.path == "/api/1/vehicles" and STATE["scenario"] == "unregistered":
+            self._json({"response": None, "error": "Account must be registered in the "
+                        "current region"}, 412)
+        elif self.path == "/api/1/vehicles" and STATE["scenario"] == "wrongregion":
+            self._json({"response": None, "error": "user out of region"}, 421)
         elif self.path == "/api/1/vehicles":
             self._json({"response": [{
                 "vin": "5YJ3E1EA1NF000000",
