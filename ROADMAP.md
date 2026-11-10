@@ -55,6 +55,15 @@
 Every entry carries the version it shipped in; the release workflow turns
 the entries for a version into the notes Sparkle shows in its update panel.
 
+- **Wake the car from the menu** (v0.7.0) — an opt-in in Settings. With it
+  on, Wake Car & Refresh appears while the car sleeps and fetches fresh
+  numbers once it answers. Teslaris still never wakes the car by itself;
+  waking needs the `vehicle_cmds` scope on your Tesla app and a new
+  sign-in, and each wake counts as ten requests against your credits.
+- **Errors that say what went wrong** (v0.7.0) — when Tesla refuses a
+  request, the menu now shows the status code and Tesla's own message,
+  with a hint at the fix for the usual causes: an app not registered in
+  your region, the wrong region, or a sign-in that has expired.
 - **The car on your desktop** (v0.6.0) — small, medium and large widgets
   with battery, range, charging state and the car itself. They show what
   the app last fetched, so they cost no extra Fleet API credits, and a
