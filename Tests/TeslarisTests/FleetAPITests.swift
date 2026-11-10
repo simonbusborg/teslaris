@@ -269,4 +269,48 @@ final class FleetAPITests: XCTestCase {
         }
         XCTAssertTrue(fired)
     }
+    // MARK: - Failure mapping
+
+    private func failure(_ status: Int, _ body: String = "") -> TeslarisError {
+        TeslaFleetAPI.failure(for: status, body: Data(body.utf8), request: "Vehicle list")
+    }
+
+    /// The tester report that prompted this: a 412 used to read only
+    /// "vehicles list failed". It must now name the status and the fix.
+    func testUnregisteredRegionNamesStatusAndFix() {
+        let message = failure(412, #"{"error":"must be registered in the current region"}"#)
+            .localizedDescription
+        XCTAssertTrue(message.contains("412"))
+        XCTAssertTrue(message.contains("Register App with Tesla"))
+        XCTAssertTrue(message.contains("must be registered in the current region"))
+    }
+
+    func testWrongRegionPointsAtRegionSetting() {
+        XCTAssertTrue(failure(421).localizedDescription.contains("Region"))
+    }
+
+    /// A rejected token is a sign-out, so the app opens Settings for it.
+    func testExpiredTokenCountsAsSignedOut() {
+        XCTAssertTrue(AppDelegate.isSignedOut(failure(401)))
+        XCTAssertTrue(AppDelegate.isSignedOut(failure(401, #"{"error":"login_required"}"#)))
+    }
+
+    /// Remote access switched off in the car is not a sign-in problem —
+    /// signing in again would not help.
+    func testMobileAccessDisabledIsNotASignOut() {
+        let error = failure(401, #"{"error":"mobile_access_disabled"}"#)
+        XCTAssertFalse(AppDelegate.isSignedOut(error))
+        XCTAssertTrue(error.localizedDescription.contains("Mobile Access"))
+    }
+
+    func testUnknownStatusKeepsTeslasWording() {
+        let message = failure(418, #"{"error":"teapot","error_description":"short and stout"}"#)
+            .localizedDescription
+        XCTAssertTrue(message.contains("418"))
+        XCTAssertTrue(message.contains("short and stout"))
+    }
+
+    func testNonJSONBodyStillReportsStatus() {
+        XCTAssertTrue(failure(502, "<html>Bad Gateway</html>").localizedDescription.contains("502"))
+    }
 }

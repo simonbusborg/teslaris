@@ -273,7 +273,9 @@ final class StatusItemController {
 
         if let error {
             menu.addItem(.separator())
-            menu.addItem(Self.infoItem("⚠︎ \(error)"))
+            let item = NSMenuItem()
+            item.view = WrappingRowView(text: "⚠︎ \(error)")
+            menu.addItem(item)
         }
 
         menu.addItem(.separator())
@@ -396,6 +398,31 @@ final class StatusItemController {
 /// A menu row rendered as a custom view: key on the left, value right-aligned,
 /// consistent colors regardless of enabled state, fixed width. Rows with
 /// `copyText` highlight on hover and copy on click. (Identical to Polaris.)
+/// A dimmed, multi-line row for error text. Errors now carry Tesla's
+/// status and a hint at the fix, which a plain menu title would lay out
+/// on one line — stretching the whole menu to fit it.
+final class WrappingRowView: NSView {
+    init(text: String) {
+        let pad: CGFloat = 14
+        let label = NSTextField(wrappingLabelWithString: text)
+        label.font = .systemFont(ofSize: 13)
+        label.textColor = .secondaryLabelColor
+        label.isSelectable = false
+        label.preferredMaxLayoutWidth = StatusItemController.rowWidth - pad * 2
+        let size = label.fittingSize
+        super.init(frame: NSRect(x: 0, y: 0, width: StatusItemController.rowWidth,
+                                 height: ceil(size.height) + 8))
+        label.frame = NSRect(x: pad, y: 4, width: StatusItemController.rowWidth - pad * 2,
+                             height: ceil(size.height))
+        addSubview(label)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.staticText)
+        setAccessibilityLabel(text)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
 final class KVRowView: NSView {
 
     private let copyText: String?
